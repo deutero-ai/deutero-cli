@@ -1,0 +1,71 @@
+[project]
+name = "deutero-cli"
+version = "0.1.0"
+description = "CLI client for the Deutero Interview Admin API — manage research surveys, generate questions, simulate interviews, and run thematic analysis from the command line."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Deutero", email = "support@deutero.app"},
+]
+keywords = ["deutero", "cli", "research", "surveys", "interviews", "thematic-analysis", "ux-research"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Typing :: Typed",
+]
+dependencies = [
+    "click>=8.1",
+    "httpx>=0.27",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-httpx>=0.34",
+    "coverage>=7.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[project.urls]
+Homepage = "https://github.com/deutero/deutero-cli"
+Documentation = "https://docs.deutero.app/cli"
+Repository = "https://github.com/deutero/deutero-cli"
+Issues = "https://github.com/deutero/deutero-cli/issues"
+Changelog = "https://github.com/deutero/deutero-cli/blob/main/CHANGELOG.md"
+
+[project.scripts]
+deutero = "deutero_cli.cli:cli"
+
+[build-system]
+requires = ["flit_core<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.module]
+name = "deutero_cli"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
