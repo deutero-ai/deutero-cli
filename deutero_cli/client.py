@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 import httpx
 
+from deutero_cli.auth import get_access_token
 from deutero_cli.config import get_api_key, get_base_url
 
 
@@ -33,7 +34,10 @@ class DeuteroClient:
 
     def _headers(self) -> Dict[str, str]:
         headers: Dict[str, str] = {"Content-Type": "application/json"}
-        if self.api_key:
+        token = get_access_token()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        elif self.api_key:
             headers["X-API-Key"] = self.api_key
         return headers
 
@@ -47,6 +51,8 @@ class DeuteroClient:
             except Exception:
                 detail = resp.text
             raise DeuteroAPIError(resp.status_code, detail)
+        if not resp.content:
+            return {}
         return resp.json()
 
     def post(self, path: str, json_body: Optional[Dict[str, Any]] = None) -> Any:
@@ -57,6 +63,16 @@ class DeuteroClient:
     def get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
         with httpx.Client(timeout=self.timeout) as http:
             resp = http.get(self._url(path), params=params, headers=self._headers())
+        return self._handle_response(resp)
+
+    def put(self, path: str, json_body: Optional[Dict[str, Any]] = None) -> Any:
+        with httpx.Client(timeout=self.timeout) as http:
+            resp = http.put(self._url(path), json=json_body or {}, headers=self._headers())
+        return self._handle_response(resp)
+
+    def delete(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
+        with httpx.Client(timeout=self.timeout) as http:
+            resp = http.delete(self._url(path), params=params, headers=self._headers())
         return self._handle_response(resp)
 
     # ── Survey endpoints ─────────────────────────────────────────────
@@ -70,10 +86,40 @@ class DeuteroClient:
     def get_agent_requirements(self, survey_id: str) -> Dict[str, Any]:
         return self.post(f"/surveys/{survey_id}/agent-requirements")
 
+    def get_survey_model_tier(self, survey_id: str) -> Dict[str, Any]:
+        return self.get(f"/surveys/{survey_id}/model-tier")
+
+    def set_survey_model_tier(self, survey_id: str, model_tier: str) -> Dict[str, Any]:
+        return self.put(f"/surveys/{survey_id}/model-tier", {"model_tier": model_tier})
+
+    def suggest_from_site(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.post("/suggest-from-site", payload)
+
     # ── Question endpoints ───────────────────────────────────────────
 
     def generate_questions(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         return self.post("/questions/generate", payload)
+
+    def create_question(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.post("/questions", payload)
+
+    def get_question(self, question_id: str) -> Dict[str, Any]:
+        return self.get(f"/questions/{question_id}")
+
+    def update_question(self, question_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.put(f"/questions/{question_id}", payload)
+
+    def delete_question(self, question_id: str, survey_id: str) -> Dict[str, Any]:
+        return self.delete(f"/questions/{question_id}", {"survey_id": survey_id})
+
+    def reorder_questions(self, survey_id: str, question_ids: list[str]) -> Dict[str, Any]:
+        return self.put(f"/surveys/{survey_id}/questions/reorder", {"question_ids": question_ids})
+
+    def upload_question_image(self, question_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.post(f"/questions/{question_id}/images", payload)
+
+    def reorder_question_images(self, question_id: str, image_ids: list[str]) -> Dict[str, Any]:
+        return self.put(f"/questions/{question_id}/images/reorder", {"image_ids": image_ids})
 
     # ── Persona endpoints ────────────────────────────────────────────
 
@@ -98,3 +144,36 @@ class DeuteroClient:
 
     def get_survey_analysis_results(self, survey_id: str) -> Dict[str, Any]:
         return self.get("/analysis/results/survey", {"survey_id": survey_id})
+
+    def estimate_simulation_credits(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.post("/credits/estimate/simulation", payload)
+
+    def estimate_analysis_credits(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.post("/credits/estimate/analysis", payload)
+
+    def estimate_survey_credits(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.post("/credits/estimate/survey", payload)
+
+    def get_credit_balance(self) -> Dict[str, Any]:
+        return self.get("/credits/balance")
+
+    # ── Project endpoints ────────────────────────────────────────────
+
+    def list_projects(self) -> Dict[str, Any]:
+        return self.get("/projects")
+
+    def list_project_surveys(self, project_id: str) -> Dict[str, Any]:
+        return self.get(f"/projects/{project_id}/surveys")
+
+    # ── Survey detail endpoints ──────────────────────────────────────
+
+    def get_question_list(self, survey_id: str) -> Dict[str, Any]:
+        return self.get(f"/surveys/{survey_id}/question-list")
+
+    def list_survey_interviews(self, survey_id: str) -> Dict[str, Any]:
+        return self.get(f"/surveys/{survey_id}/interviews")
+
+    # ── Interview detail endpoints ───────────────────────────────────
+
+    def get_interview_transcript(self, interview_id: str) -> Dict[str, Any]:
+        return self.get(f"/interviews/{interview_id}/transcript")

@@ -92,6 +92,19 @@ class TestSurveysGenerate:
             call_payload = mock.call_args[0][0]
             assert call_payload["language"] == "Spanish"
 
+    def test_generate_with_model_tier(self, invoke, survey_generation_response):
+        with patch("deutero_cli.client.DeuteroClient.generate_survey", return_value=survey_generation_response) as mock:
+            result = invoke([
+                "surveys", "generate",
+                "--survey-type", "user_experience",
+                "--business-context", "test",
+                "--research-need", "test",
+                "--model-tier", "premium",
+            ])
+            assert result.exit_code == 0
+            call_payload = mock.call_args[0][0]
+            assert call_payload["model_tier"] == "premium"
+
     def test_generate_api_error(self, invoke):
         from deutero_cli.client import DeuteroAPIError
 
@@ -136,3 +149,70 @@ class TestSurveysAgentRequirements:
         with patch("deutero_cli.client.DeuteroClient.get_agent_requirements", return_value=agent_requirements_response):
             result = invoke(["surveys", "agent-requirements", SAMPLE_SURVEY_ID])
             assert result.exit_code == 0
+
+
+class TestSurveysModelTier:
+    def test_get_model_tier(self, invoke, model_tier_response):
+        with patch("deutero_cli.client.DeuteroClient.get_survey_model_tier", return_value=model_tier_response):
+            result = invoke(["surveys", "model-tier", SAMPLE_SURVEY_ID])
+            assert result.exit_code == 0
+            assert "premium" in result.output
+
+    def test_set_model_tier(self, invoke, model_tier_response):
+        with patch("deutero_cli.client.DeuteroClient.set_survey_model_tier", return_value=model_tier_response) as mock:
+            result = invoke(["surveys", "model-tier", SAMPLE_SURVEY_ID, "--set", "premium"])
+            assert result.exit_code == 0
+            mock.assert_called_once_with(SAMPLE_SURVEY_ID, "premium")
+
+
+class TestSurveysSuggestFromSite:
+    def test_suggest_from_site(self, invoke, suggest_from_site_response):
+        with patch("deutero_cli.client.DeuteroClient.suggest_from_site", return_value=suggest_from_site_response) as mock:
+            result = invoke(["surveys", "suggest-from-site", "https://example.com", "--language", "Spanish"])
+            assert result.exit_code == 0
+            assert "valid" in result.output
+            assert mock.call_args[0][0]["language"] == "Spanish"
+
+
+class TestSurveysQuestionList:
+    def test_question_list_success(self, invoke, question_list_response):
+        with patch("deutero_cli.client.DeuteroClient.get_question_list", return_value=question_list_response) as mock:
+            result = invoke(["surveys", "question-list", SAMPLE_SURVEY_ID])
+            assert result.exit_code == 0
+            assert "2 question(s)" in result.output
+            mock.assert_called_once_with(SAMPLE_SURVEY_ID)
+
+    def test_question_list_empty(self, invoke):
+        with patch("deutero_cli.client.DeuteroClient.get_question_list", return_value={"id": "ql-1", "survey_id": SAMPLE_SURVEY_ID, "questions": []}):
+            result = invoke(["surveys", "question-list", SAMPLE_SURVEY_ID])
+            assert result.exit_code == 0
+            assert "0 question(s)" in result.output
+
+    def test_question_list_not_found(self, invoke):
+        from deutero_cli.client import DeuteroAPIError
+
+        with patch("deutero_cli.client.DeuteroClient.get_question_list", side_effect=DeuteroAPIError(404, "Survey not found")):
+            result = invoke(["surveys", "question-list", SAMPLE_SURVEY_ID])
+            assert result.exit_code == 1
+
+
+class TestSurveysInterviews:
+    def test_survey_interviews_success(self, invoke, survey_interviews_response):
+        with patch("deutero_cli.client.DeuteroClient.list_survey_interviews", return_value=survey_interviews_response) as mock:
+            result = invoke(["surveys", "interviews", SAMPLE_SURVEY_ID])
+            assert result.exit_code == 0
+            assert "2 interview(s)" in result.output
+            mock.assert_called_once_with(SAMPLE_SURVEY_ID)
+
+    def test_survey_interviews_empty(self, invoke):
+        with patch("deutero_cli.client.DeuteroClient.list_survey_interviews", return_value={"survey_id": SAMPLE_SURVEY_ID, "total": 0, "interviews": []}):
+            result = invoke(["surveys", "interviews", SAMPLE_SURVEY_ID])
+            assert result.exit_code == 0
+            assert "0 interview(s)" in result.output
+
+    def test_survey_interviews_not_found(self, invoke):
+        from deutero_cli.client import DeuteroAPIError
+
+        with patch("deutero_cli.client.DeuteroClient.list_survey_interviews", side_effect=DeuteroAPIError(404, "Survey not found")):
+            result = invoke(["surveys", "interviews", SAMPLE_SURVEY_ID])
+            assert result.exit_code == 1

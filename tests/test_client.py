@@ -7,7 +7,7 @@ import pytest
 
 from deutero_cli.client import DeuteroAPIError, DeuteroClient
 
-from .conftest import SAMPLE_INTERVIEW_ID, SAMPLE_PERSONA_ID, SAMPLE_SURVEY_ID, TEST_API_KEY, TEST_BASE_URL
+from .conftest import SAMPLE_IMAGE_ID, SAMPLE_INTERVIEW_ID, SAMPLE_PERSONA_ID, SAMPLE_QUESTION_ID, SAMPLE_SURVEY_ID, TEST_API_KEY, TEST_BASE_URL
 
 
 class TestClientHeaders:
@@ -138,3 +138,107 @@ class TestClientEndpoints:
         )
         result = client.get_survey_analysis_results(SAMPLE_SURVEY_ID)
         assert result["xml_output"]
+
+    def test_survey_model_tier(self, httpx_mock, client, model_tier_response):
+        httpx_mock.add_response(
+            method="GET",
+            url=f"{TEST_BASE_URL}/api/v1/surveys/{SAMPLE_SURVEY_ID}/model-tier",
+            json=model_tier_response,
+        )
+        result = client.get_survey_model_tier(SAMPLE_SURVEY_ID)
+        assert result["model_tier"] == "premium"
+
+    def test_set_survey_model_tier(self, httpx_mock, client, model_tier_response):
+        httpx_mock.add_response(
+            method="PUT",
+            url=f"{TEST_BASE_URL}/api/v1/surveys/{SAMPLE_SURVEY_ID}/model-tier",
+            json=model_tier_response,
+        )
+        result = client.set_survey_model_tier(SAMPLE_SURVEY_ID, "premium")
+        assert result["model_provider"] == "anthropic"
+
+    def test_suggest_from_site(self, httpx_mock, client, suggest_from_site_response):
+        httpx_mock.add_response(
+            method="POST",
+            url=f"{TEST_BASE_URL}/api/v1/suggest-from-site",
+            json=suggest_from_site_response,
+        )
+        result = client.suggest_from_site({"url": "https://example.com"})
+        assert result["is_valid"] is True
+
+    def test_question_crud_and_ordering(self, httpx_mock, client, question_response, question_create_response):
+        httpx_mock.add_response(method="POST", url=f"{TEST_BASE_URL}/api/v1/questions", json=question_create_response)
+        assert client.create_question({"survey_id": SAMPLE_SURVEY_ID, "question": "Q"})["id"] == SAMPLE_QUESTION_ID
+
+        httpx_mock.add_response(
+            method="GET",
+            url=f"{TEST_BASE_URL}/api/v1/questions/{SAMPLE_QUESTION_ID}",
+            json=question_response,
+        )
+        assert client.get_question(SAMPLE_QUESTION_ID)["question"]
+
+        httpx_mock.add_response(
+            method="PUT",
+            url=f"{TEST_BASE_URL}/api/v1/questions/{SAMPLE_QUESTION_ID}",
+            json=question_response,
+        )
+        assert client.update_question(SAMPLE_QUESTION_ID, {"question": "Updated"})["id"] == SAMPLE_QUESTION_ID
+
+        httpx_mock.add_response(
+            method="DELETE",
+            url=f"{TEST_BASE_URL}/api/v1/questions/{SAMPLE_QUESTION_ID}?survey_id={SAMPLE_SURVEY_ID}",
+            json={"success": True},
+        )
+        assert client.delete_question(SAMPLE_QUESTION_ID, SAMPLE_SURVEY_ID)["success"] is True
+
+        httpx_mock.add_response(
+            method="PUT",
+            url=f"{TEST_BASE_URL}/api/v1/surveys/{SAMPLE_SURVEY_ID}/questions/reorder",
+            json={"success": True},
+        )
+        assert client.reorder_questions(SAMPLE_SURVEY_ID, [SAMPLE_QUESTION_ID])["success"] is True
+
+    def test_question_images(self, httpx_mock, client, question_image_response):
+        httpx_mock.add_response(
+            method="POST",
+            url=f"{TEST_BASE_URL}/api/v1/questions/{SAMPLE_QUESTION_ID}/images",
+            json=question_image_response,
+        )
+        result = client.upload_question_image(SAMPLE_QUESTION_ID, {"image_data": "data:image/png;base64,abc"})
+        assert result["id"] == SAMPLE_IMAGE_ID
+
+        httpx_mock.add_response(
+            method="PUT",
+            url=f"{TEST_BASE_URL}/api/v1/questions/{SAMPLE_QUESTION_ID}/images/reorder",
+            json={"success": True},
+        )
+        assert client.reorder_question_images(SAMPLE_QUESTION_ID, [SAMPLE_IMAGE_ID])["success"] is True
+
+    def test_credits(self, httpx_mock, client, credit_estimation_response, credit_balance_response):
+        httpx_mock.add_response(
+            method="POST",
+            url=f"{TEST_BASE_URL}/api/v1/credits/estimate/simulation",
+            json=credit_estimation_response,
+        )
+        assert client.estimate_simulation_credits({"survey_id": SAMPLE_SURVEY_ID})["estimated_credits"] == 12
+
+        httpx_mock.add_response(
+            method="POST",
+            url=f"{TEST_BASE_URL}/api/v1/credits/estimate/analysis",
+            json=credit_estimation_response,
+        )
+        assert client.estimate_analysis_credits({"survey_id": SAMPLE_SURVEY_ID})["num_questions"] == 5
+
+        httpx_mock.add_response(
+            method="POST",
+            url=f"{TEST_BASE_URL}/api/v1/credits/estimate/survey",
+            json=credit_estimation_response,
+        )
+        assert client.estimate_survey_credits({"survey_id": SAMPLE_SURVEY_ID})["model_tier"] == "premium"
+
+        httpx_mock.add_response(
+            method="GET",
+            url=f"{TEST_BASE_URL}/api/v1/credits/balance",
+            json=credit_balance_response,
+        )
+        assert client.get_credit_balance()["net_available"] == 75

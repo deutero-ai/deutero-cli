@@ -9,9 +9,12 @@ import click
 from deutero_cli import __version__
 from deutero_cli.client import DeuteroClient
 from deutero_cli.commands.analysis import analysis_group
+from deutero_cli.commands.auth_cmd import auth_group
 from deutero_cli.commands.config_cmd import config_group
+from deutero_cli.commands.credits import credits_group
 from deutero_cli.commands.interviews import interviews_group
 from deutero_cli.commands.personas import personas_group
+from deutero_cli.commands.projects import projects_group
 from deutero_cli.commands.questions import questions_group
 from deutero_cli.commands.surveys import surveys_group
 
@@ -27,12 +30,15 @@ def cli(ctx: click.Context, api_key: Optional[str], base_url: Optional[str]) -> 
     ctx.obj["client"] = DeuteroClient(base_url=base_url, api_key=api_key)
 
 
+cli.add_command(auth_group)
 cli.add_command(config_group)
 cli.add_command(surveys_group)
 cli.add_command(questions_group)
 cli.add_command(personas_group)
+cli.add_command(projects_group)
 cli.add_command(interviews_group)
 cli.add_command(analysis_group)
+cli.add_command(credits_group)
 
 
 if __name__ == "__main__":

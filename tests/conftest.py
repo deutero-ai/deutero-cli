@@ -19,6 +19,9 @@ TEST_BASE_URL = "http://testserver"
 SAMPLE_SURVEY_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 SAMPLE_INTERVIEW_ID = "f0e1d2c3-b4a5-6789-0abc-def123456789"
 SAMPLE_PERSONA_ID = "11223344-5566-7788-99aa-bbccddeeff00"
+SAMPLE_QUESTION_ID = "01020304-0506-0708-090a-0b0c0d0e0f10"
+SAMPLE_IMAGE_ID = "11111111-2222-3333-4444-555555555555"
+SAMPLE_PROJECT_ID = "99999999-8888-7777-6666-555555555555"
 
 
 @pytest.fixture
@@ -211,4 +214,176 @@ def survey_results_response():
         "xml_output": "<crossCaseAnalysis><themes/></crossCaseAnalysis>",
         "completed_at": "2025-01-01T12:00:00",
         "error": None,
+    }
+
+
+@pytest.fixture
+def model_tier_response():
+    return {
+        "survey_id": SAMPLE_SURVEY_ID,
+        "model_tier": "premium",
+        "model_id": "claude-sonnet",
+        "model_provider": "anthropic",
+    }
+
+
+@pytest.fixture
+def suggest_from_site_response():
+    return {
+        "is_valid": True,
+        "rationale": "The site contains enough product context.",
+        "study_data": {"study_name": "Landing Page UX Study"},
+        "run_id": "run-123",
+        "run_index": 1,
+        "total_runs": 1,
+    }
+
+
+@pytest.fixture
+def question_response():
+    return {
+        "id": SAMPLE_QUESTION_ID,
+        "question": "What is your biggest onboarding challenge?",
+        "explanation": "Probe for specifics.",
+        "scale": None,
+        "options": None,
+        "slots": None,
+        "follow_up": True,
+        "min_turns": 1,
+        "max_turns": 3,
+        "expected_image": None,
+    }
+
+
+@pytest.fixture
+def question_create_response(question_response):
+    return {
+        **question_response,
+        "type": "text",
+        "question_list_id": "question-list-123",
+    }
+
+
+@pytest.fixture
+def question_image_response():
+    return {
+        "id": SAMPLE_IMAGE_ID,
+        "question_id": SAMPLE_QUESTION_ID,
+        "survey_id": SAMPLE_SURVEY_ID,
+        "gcs_url": "gs://bucket/image.png",
+        "label": "Concept A",
+        "position": 1,
+    }
+
+
+@pytest.fixture
+def credit_estimation_response():
+    return {
+        "estimated_credits": 12,
+        "credits_per_interview": 2,
+        "credits_for_analysis": 4,
+        "model_tier": "premium",
+        "num_participants": 4,
+        "num_questions": 5,
+    }
+
+
+@pytest.fixture
+def credit_balance_response():
+    return {
+        "available_credits": 100,
+        "credits_used": 20,
+        "credits_reserved": 5,
+        "base_limit": 100,
+        "purchased_credits": 10,
+        "rollover_credits": 0,
+        "is_trial_active": False,
+        "trial_credits_used": 0,
+        "net_available": 75,
+    }
+
+
+@pytest.fixture
+def project_list_response():
+    return {
+        "projects": [
+            {"id": SAMPLE_PROJECT_ID, "name": "UX Research Q1 2025", "description": "Quarterly UX research initiative."},
+            {"id": "88888888-7777-6666-5555-444444444444", "name": "Customer Discovery", "description": None},
+        ],
+    }
+
+
+@pytest.fixture
+def project_surveys_response():
+    return {
+        "project_id": SAMPLE_PROJECT_ID,
+        "surveys": [
+            {"id": SAMPLE_SURVEY_ID, "alias": "Onboarding Study", "description": "Study about onboarding.", "survey_type": "user_experience", "language": "English", "date_created": "2025-01-15T10:00:00", "max_responses": 20},
+            {"id": "77777777-6666-5555-4444-333333333333", "alias": "Feature Prioritization", "description": None, "survey_type": "user_experience", "language": "English", "date_created": "2025-02-01T10:00:00", "max_responses": None},
+        ],
+    }
+
+
+@pytest.fixture
+def question_list_response():
+    return {
+        "id": "question-list-123",
+        "survey_id": SAMPLE_SURVEY_ID,
+        "questions": [
+            {
+                "id": SAMPLE_QUESTION_ID,
+                "question_number": 1,
+                "question": "Tell me about your experience.",
+                "type": "text",
+                "explanation": None,
+                "scale": None,
+                "options": None,
+                "slots": None,
+                "follow_up": True,
+                "min_turns": None,
+                "max_turns": None,
+                "expected_image": None,
+                "images": None,
+            },
+            {
+                "id": "02030405-0607-0809-0a0b-0c0d0e0f1011",
+                "question_number": 2,
+                "question": "Rate your satisfaction.",
+                "type": "scale",
+                "explanation": "Use the 1-5 scale.",
+                "scale": {"minScale": 1, "maxScale": 5, "minLabel": "Low", "maxLabel": "High"},
+                "options": None,
+                "slots": None,
+                "follow_up": False,
+                "min_turns": None,
+                "max_turns": None,
+                "expected_image": None,
+                "images": None,
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def survey_interviews_response():
+    return {
+        "survey_id": SAMPLE_SURVEY_ID,
+        "total": 2,
+        "interviews": [
+            {"id": SAMPLE_INTERVIEW_ID, "participant_name": "Sarah", "start_time": "2025-01-20T09:00:00", "end_time": "2025-01-20T09:25:00", "completed": True, "simulated": True, "termination_reason": None},
+            {"id": "eeeeeeee-dddd-cccc-bbbb-aaaaaaaaaaaa", "participant_name": "James", "start_time": "2025-01-21T10:00:00", "end_time": None, "completed": False, "simulated": True, "termination_reason": "timeout"},
+        ],
+    }
+
+
+@pytest.fixture
+def interview_transcript_response():
+    return {
+        "interview_id": SAMPLE_INTERVIEW_ID,
+        "total": 3,
+        "messages": [
+            {"id": "msg-1", "role": "assistant", "content": "Welcome! Tell me about your experience.", "timestamp": "2025-01-20T09:00:00", "question_id": SAMPLE_QUESTION_ID, "question_number": 1},
+            {"id": "msg-2", "role": "user", "content": "It was great, very intuitive.", "timestamp": "2025-01-20T09:00:30", "question_id": None, "question_number": None},
+            {"id": "msg-3", "role": "assistant", "content": "Can you elaborate on what made it intuitive?", "timestamp": "2025-01-20T09:01:00", "question_id": SAMPLE_QUESTION_ID, "question_number": 1},
+        ],
     }

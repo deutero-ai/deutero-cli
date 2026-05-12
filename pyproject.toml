@@ -1,6 +1,6 @@
 [project]
 name = "deutero-cli"
-version = "0.1.0"
+version = "0.1.1"
 description = "CLI client for the Deutero Interview Admin API — manage research surveys, generate questions, simulate interviews, and run thematic analysis from the command line."
 readme = "README.md"
 license = {text = "MIT"}

@@ -45,3 +45,21 @@ def interviews_simulate(
 
     print_success(f"Interview simulation started — transcript: {result.get('transcript_url', '—')}")
     print_json(result, output_file)
+
+
+@interviews_group.command("transcript")
+@click.argument("interview_id")
+@click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
+@click.pass_context
+def interviews_transcript(ctx: click.Context, interview_id: str, output_file: Optional[str]) -> None:
+    """Get the transcript for an interview."""
+    client: DeuteroClient = ctx.obj["client"]
+    try:
+        result = client.get_interview_transcript(interview_id)
+    except Exception as exc:
+        print_error(str(exc))
+        raise SystemExit(1)
+
+    messages = result.get("messages", [])
+    print_success(f"Transcript for interview {interview_id} — {len(messages)} message(s)")
+    print_json(result, output_file)

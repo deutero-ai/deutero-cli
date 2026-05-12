@@ -53,3 +53,25 @@ class TestInterviewsSimulate:
             payload = mock.call_args[0][0]
             assert payload["survey_id"] == SAMPLE_SURVEY_ID
             assert payload["persona_id"] == SAMPLE_PERSONA_ID
+
+
+class TestInterviewsTranscript:
+    def test_transcript_success(self, invoke, interview_transcript_response):
+        with patch("deutero_cli.client.DeuteroClient.get_interview_transcript", return_value=interview_transcript_response) as mock:
+            result = invoke(["interviews", "transcript", SAMPLE_INTERVIEW_ID])
+            assert result.exit_code == 0
+            assert "3 message(s)" in result.output
+            mock.assert_called_once_with(SAMPLE_INTERVIEW_ID)
+
+    def test_transcript_empty(self, invoke):
+        with patch("deutero_cli.client.DeuteroClient.get_interview_transcript", return_value={"interview_id": SAMPLE_INTERVIEW_ID, "total": 0, "messages": []}):
+            result = invoke(["interviews", "transcript", SAMPLE_INTERVIEW_ID])
+            assert result.exit_code == 0
+            assert "0 message(s)" in result.output
+
+    def test_transcript_not_found(self, invoke):
+        from deutero_cli.client import DeuteroAPIError
+
+        with patch("deutero_cli.client.DeuteroClient.get_interview_transcript", side_effect=DeuteroAPIError(404, "Interview not found")):
+            result = invoke(["interviews", "transcript", SAMPLE_INTERVIEW_ID])
+            assert result.exit_code == 1

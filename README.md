@@ -21,7 +21,43 @@ Command-line client for the **[Deutero](https://deutero.ai) Interview Admin API*
 
 ---
 
-## Getting Your API Key
+## Authentication
+
+The CLI supports two authentication methods:
+
+### OAuth2 + PKCE (recommended)
+
+Authenticate via your browser using Stytch Connected Apps. This is the most secure and convenient method.
+
+```bash
+# Option A – environment variables
+export DEUTERO_CLIENT_ID="your-connected-app-client-id"
+export DEUTERO_STYTCH_PROJECT_ID="your-stytch-project-id"
+deutero auth login
+
+# Option B – pass directly
+deutero auth login --client-id <CLIENT_ID> --project-id <PROJECT_ID>
+```
+
+This opens your browser, authenticates you, and securely stores the access token in `~/.deutero/config.json`.
+
+Check your login status:
+
+```bash
+deutero auth status
+```
+
+Log out (removes stored tokens):
+
+```bash
+deutero auth logout
+```
+
+Tokens are automatically refreshed when they expire using the stored `refresh_token`.
+
+### API Key (fallback)
+
+If you prefer not to use OAuth, you can authenticate with an API key:
 
 1. Log in to your [Deutero dashboard](https://app.deutero.ai)
 2. Navigate to **Settings**
@@ -29,6 +65,14 @@ Command-line client for the **[Deutero](https://deutero.ai) Interview Admin API*
 4. Click **Generate New API Key**
 5. Copy the key immediately — it is shown only once
 6. Store it securely (use an environment variable or a secrets manager; never commit it to version control)
+
+```bash
+# Environment variable
+export DEUTERO_API_KEY="your-api-key"
+
+# Or save to config
+deutero config set-key your-api-key
+```
 
 An active Deutero subscription with available credits is required to use the API.
 
@@ -68,14 +112,16 @@ pip install -e ".[dev]"
 
 ## Quick Start
 
-### 1. Configure your API key
+### 1. Authenticate
 
 ```bash
-# Option A – environment variable (recommended)
-export DEUTERO_API_KEY="your-api-key"
+# OAuth2 (recommended)
+export DEUTERO_CLIENT_ID="your-client-id"
+export DEUTERO_STYTCH_PROJECT_ID="your-project-id"
+deutero auth login
 
-# Option B – save to ~/.deutero/config.json
-deutero config set-key your-api-key
+# Or use an API key
+export DEUTERO_API_KEY="your-api-key"
 ```
 
 Optionally set a custom base URL:
@@ -94,7 +140,8 @@ deutero surveys generate \
   --survey-type user_experience \
   --business-context "B2B SaaS project management tool" \
   --research-need "Understand onboarding friction" \
-  --target-users "Engineering managers at mid-size companies"
+  --target-users "Engineering managers at mid-size companies" \
+  --model-tier premium
 
 # Sociology
 deutero surveys generate \
@@ -114,6 +161,13 @@ deutero surveys generate \
   --survey-type polling \
   --research-question "Public sentiment on AI regulation" \
   --population-segment "US adults 18-65"
+
+# Generate a suggestion from a website
+deutero surveys suggest-from-site https://example.com --language English
+
+# Get or set model tier for an existing survey
+deutero surveys model-tier <SURVEY_ID>
+deutero surveys model-tier <SURVEY_ID> --set premium
 ```
 
 ### 3. Generate interview questions
@@ -121,6 +175,19 @@ deutero surveys generate \
 ```bash
 deutero questions generate <SURVEY_ID> --count 5
 deutero questions generate <SURVEY_ID> --count 10 --instructions "Focus on emotional responses"
+
+# CRUD operations
+deutero questions create <SURVEY_ID> --question "How do you feel about X?" --follow-up
+deutero questions get <QUESTION_ID>
+deutero questions update <QUESTION_ID> --question "Updated text" --max-turns 5
+deutero questions delete <QUESTION_ID> --survey-id <SURVEY_ID>
+
+# Reorder questions within a survey
+deutero questions reorder <SURVEY_ID> <Q_ID_1> <Q_ID_2> <Q_ID_3>
+
+# Upload and reorder images on a question
+deutero questions upload-image <QUESTION_ID> --image-file photo.png --label "Prototype A"
+deutero questions reorder-images <QUESTION_ID> <IMG_ID_1> <IMG_ID_2>
 ```
 
 ### 4. Generate personas
@@ -165,6 +232,48 @@ deutero analysis results-interview <INTERVIEW_ID> --phase emergent_themes --outp
 deutero analysis results-survey <SURVEY_ID> --output cross_case.xml
 ```
 
+### 9. Check credit balance and estimates
+
+```bash
+# Current balance
+deutero credits balance
+
+# Estimate credits for simulating interviews
+deutero credits estimate-simulation <SURVEY_ID> --model-tier premium --participants 10
+
+# Estimate credits for thematic analysis
+deutero credits estimate-analysis <SURVEY_ID> --model-tier open_weights --interviews 5
+
+# Estimate credits for a full survey (interviews + optional analysis)
+deutero credits estimate-survey <SURVEY_ID> --model-tier premium --participants 10 --include-analysis
+```
+
+### 10. List projects and surveys
+
+```bash
+# List all projects
+deutero projects list
+
+# List surveys in a project
+deutero projects list-surveys <PROJECT_ID>
+```
+
+### 11. Inspect survey details
+
+```bash
+# Get the full question list for a survey
+deutero surveys question-list <SURVEY_ID>
+
+# List all interviews for a survey
+deutero surveys interviews <SURVEY_ID>
+```
+
+### 12. Retrieve interview transcripts
+
+```bash
+deutero interviews transcript <INTERVIEW_ID>
+```
+
 ---
 
 ## Global Options
@@ -173,8 +282,10 @@ Every command supports:
 
 | Flag | Env var | Description |
 |------|---------|-------------|
-| `--api-key` | `DEUTERO_API_KEY` | API key for authentication |
+| `--api-key` | `DEUTERO_API_KEY` | API key for authentication (fallback) |
 | `--base-url` | `DEUTERO_BASE_URL` | API base URL |
+| `--client-id` | `DEUTERO_CLIENT_ID` | Stytch Connected App client ID |
+| `--project-id` | `DEUTERO_STYTCH_PROJECT_ID` | Stytch project ID |
 | `--version` | — | Show version and exit |
 | `--help` | — | Show help and exit |
 
@@ -189,25 +300,49 @@ Most data commands also accept:
 
 ```
 deutero
+├── auth
+│   ├── login                       Authenticate via OAuth2 + PKCE
+│   ├── logout                      Clear stored tokens
+│   └── status                      Show auth status
 ├── config
-│   ├── show                    View current configuration
-│   ├── set-key <KEY>           Save API key
-│   └── set-url <URL>           Save base URL
+│   ├── show                        View current configuration
+│   ├── set-key <KEY>               Save API key
+│   └── set-url <URL>               Save base URL
+├── credits
+│   ├── balance                     Get credit balance and reservations
+│   ├── estimate-simulation <ID>    Estimate credits for simulation
+│   ├── estimate-analysis <ID>      Estimate credits for analysis
+│   └── estimate-survey <ID>        Estimate credits for full survey
+├── projects
+│   ├── list                        List all projects
+│   └── list-surveys <ID>           List surveys for a project
 ├── surveys
-│   ├── generate                Generate a research survey
-│   ├── participation <ID>      Get participation statistics
-│   └── agent-requirements <ID> Get agent requirements markdown
+│   ├── generate                    Generate a research survey
+│   ├── participation <ID>          Get participation statistics
+│   ├── agent-requirements <ID>     Get agent requirements markdown
+│   ├── model-tier <ID>             Get or set survey model tier
+│   ├── suggest-from-site <URL>     Generate study suggestion from a URL
+│   ├── question-list <ID>          Get full question list for a survey
+│   └── interviews <ID>             List interviews for a survey
 ├── questions
-│   └── generate <ID>           Generate interview questions
+│   ├── generate <ID>               Generate interview questions
+│   ├── create <SURVEY_ID>          Create a single question
+│   ├── get <QUESTION_ID>           Get a question by ID
+│   ├── update <QUESTION_ID>        Update a question
+│   ├── delete <QUESTION_ID>        Delete a question
+│   ├── reorder <SURVEY_ID> <IDs>   Reorder questions in a survey
+│   ├── upload-image <QUESTION_ID>  Upload an image to a question
+│   └── reorder-images <QID> <IDs>  Reorder images on a question
 ├── personas
-│   └── generate <ID>           Generate interviewee personas
+│   └── generate <ID>               Generate interviewee personas
 ├── interviews
-│   └── simulate <SID> <PID>    Simulate an interview
+│   ├── simulate <SID> <PID>        Simulate an interview
+│   └── transcript <ID>             Get interview transcript
 └── analysis
-    ├── run                     Run thematic analysis
-    ├── status                  Get analysis status
-    ├── results-interview <ID>  Get per-phase results
-    └── results-survey <ID>     Get cross-case results
+    ├── run                         Run thematic analysis
+    ├── status                      Get analysis status
+    ├── results-interview <ID>      Get per-phase results
+    └── results-survey <ID>         Get cross-case results
 ```
 
 ---
@@ -216,306 +351,24 @@ deutero
 
 The CLI reads configuration from two sources (environment variables take precedence):
 
-1. **Environment variables**: `DEUTERO_API_KEY`, `DEUTERO_BASE_URL`
+1. **Environment variables**:
+   - `DEUTERO_CLIENT_ID` / `DEUTERO_STYTCH_PROJECT_ID` — for OAuth login
+   - `DEUTERO_API_KEY` — for API key fallback
+   - `DEUTERO_BASE_URL` — API base URL
+
 2. **Config file**: `~/.deutero/config.json`
 
 ```json
 {
   "api_key": "your-api-key",
-  "base_url": "https://api.deutero.app"
+  "base_url": "https://api.deutero.app",
+  "access_token": "...",
+  "refresh_token": "...",
+  "token_expiry": 1234567890,
+  "client_id": "your-client-id",
+  "project_id": "your-project-id"
 }
 ```
-
----
-
-## MCP Server Integration
-
-Deutero provides a remote MCP server that connects your AI coding assistant (Cursor, Windsurf, Claude Code, and others) directly to the Deutero API. This lets your coding agent create studies, generate questions, run simulations, and retrieve research insights without leaving your IDE.
-
-### Prerequisites
-
-- Active Deutero account with a valid subscription and credits
-- Your API key (see [Getting Your API Key](#getting-your-api-key) above)
-- An MCP-compatible IDE (Cursor, Windsurf, Claude Desktop/Code, etc.)
-
-### Available MCP Tools
-
-| Tool | Category | Purpose |
-|------|----------|---------|
-| `create_study` | Study management | Create a new study (UX, sociology, customer dev, polling) |
-| `create_study_questions` | Study management | Generate 1–25 interview questions for a study |
-| `create_simulation_persona` | Simulation | Generate 1–25 AI personas for a study |
-| `simulate_interviews` | Simulation | Run one simulated interview (survey + persona) |
-| `run_thematic_analysis` | Analysis | Start thematic analysis (single interview or full survey; optional cross-case) |
-| `get_analysis_status` | Analysis | Check analysis progress for an interview or survey |
-| `get_agent_requirements` | Analysis | Get or generate LLM-oriented requirements Markdown from cross-case analysis |
-| `get_survey_participation` | Participation | Get completion and quota statistics for a survey |
-
-All tools require your API key via the `X-API-Key` header in the MCP configuration.
-
-### Configuration
-
-#### Cursor
-
-**Global** — create or edit `~/.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "deutero": {
-      "url": "http://agents.deutero.ai/mcp",
-      "headers": {
-        "X-API-Key": "your-api-key-here"
-      }
-    }
-  }
-}
-```
-
-**Project-level** — create or edit `.cursor/mcp.json` in your project root (use an env var to avoid committing the key):
-
-```json
-{
-  "mcpServers": {
-    "deutero": {
-      "url": "http://agents.deutero.ai/mcp",
-      "headers": {
-        "X-API-Key": "${env:DEUTERO_API_KEY}"
-      }
-    }
-  }
-}
-```
-
-#### Windsurf
-
-**Global** — create or edit `~/.windsurf/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "deutero": {
-      "url": "http://agents.deutero.ai/mcp",
-      "headers": {
-        "X-API-Key": "${env:DEUTERO_API_KEY}"
-      }
-    }
-  }
-}
-```
-
-**Project-level** — create or edit `.windsurf/mcp.json` in your project root (same format as above).
-
-#### Claude Desktop / Claude Code
-
-**macOS** — edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "deutero": {
-      "url": "http://agents.deutero.ai/mcp",
-      "headers": {
-        "X-API-Key": "your-api-key-here"
-      }
-    }
-  }
-}
-```
-
-**Windows** — edit `%APPDATA%\Claude\claude_desktop_config.json` with the same structure.
-
-#### Other MCP-Compatible Tools
-
-```json
-{
-  "mcpServers": {
-    "deutero": {
-      "url": "http://agents.deutero.ai/mcp",
-      "headers": {
-        "X-API-Key": "your-api-key-here"
-      }
-    }
-  }
-}
-```
-
-Consult your tool's documentation for the exact configuration file location.
-
-### MCP Tool Reference
-
-#### `create_study`
-
-Create a new research study. Study type determines which fields are required; missing required fields are elicited interactively.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `survey_type` | string | Yes | `user_experience`, `sociology`, `customer_development`, or `polling` |
-| `language` | string | No | Language for the study (default: `English`) |
-| `business_context` | string | UX only | Business or product context |
-| `research_need` | string | UX only | Why the research is being done |
-| `target_users` | string | UX only | Target audience or user segment |
-| `constraints` | string | UX only | Constraints, timing, or other considerations |
-| `research_question` | string | Sociology / Polling | The research question |
-| `population_of_interest` | string | Sociology | Population of interest |
-| `context_or_setting` | string | Sociology | Context or setting |
-| `key_concepts` | string | Sociology | Key concepts |
-| `scope_and_boundaries` | string | Sociology | Scope and boundaries |
-| `problem_hypothesis` | string | Customer dev | Problem hypothesis |
-| `customer_segment` | string | Customer dev | Customer segment |
-| `solution_concept` | string | Customer dev | Solution concept |
-| `key_assumptions` | string | Customer dev | Key assumptions |
-| `success_criteria` | string | Customer dev | Success criteria |
-| `population_segment` | string | Polling | Population segment |
-| `geographic_scope` | string | Polling | Geographic scope |
-| `survey_context` | string | Polling | Survey context |
-| `data_quality_requirements` | string | Polling | Data quality requirements |
-
-**Returns**: `study_id`, `study_name`, `study_description`, `research_questions`, `research_objectives`, `url`, `xml_file`.
-
----
-
-#### `create_study_questions`
-
-Generate interview questions for an existing study.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `survey_id` | string (UUID) | Yes | ID of the survey |
-| `number_of_questions` | integer | No | Number of questions to generate (1–25; default: 10) |
-| `additional_instructions` | string | No | Extra instructions for question generation |
-
-**Returns**: `survey_id`, `question_list`, `edit_questions_url`, `interview_url`, `xml_file`.
-
----
-
-#### `create_simulation_persona`
-
-Generate AI personas for simulated interviews.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `survey_id` | string (UUID) | Yes | ID of the survey |
-| `number_of_personas` | integer | No | Number of personas to generate (1–25; default: 1) |
-| `additional_instructions` | string | No | Extra instructions for persona generation |
-
-**Returns**: `survey_id`, `personas` (list of `{ persona, persona_id }`).
-
----
-
-#### `simulate_interviews`
-
-Run a simulated interview for a survey and persona. Can take up to 5 minutes.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `survey_id` | string (UUID) | Yes | ID of the survey |
-| `persona_id` | string | Yes | ID of the persona (from `create_simulation_persona`) |
-
-**Returns**: `survey_id`, `persona_id`, `transcript_url`.
-
----
-
-#### `run_thematic_analysis`
-
-Start thematic analysis in the background (returns immediately; use `get_analysis_status` to poll).
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `interview_id` | string (UUID) | One of | Run analysis on this single interview |
-| `survey_id` | string (UUID) | One of | Run analysis on all completed interviews for this survey |
-| `model_tier` | string | No | `open_weights`, `premium`, or `frontier` (default: `open_weights`) |
-| `cross_case_analysis` | boolean | No | Run cross-case analysis across interviews; requires `survey_id` (default: false) |
-
-**Returns**: `success`, `interviews_queued`, `interviews`, `message`.
-
----
-
-#### `get_analysis_status`
-
-Check analysis progress for an interview or survey.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `interview_id` | string (UUID) | One of | Status for a single interview |
-| `survey_id` | string (UUID) | One of | Status for all interviews in a survey |
-
-**Returns**: `interview_id`, `survey_id`, `total_interviews`, `interviews` (with phase completion and run metadata).
-
----
-
-#### `get_agent_requirements`
-
-Retrieve the LLM-oriented requirements Markdown document derived from cross-case thematic analysis. Cross-case analysis must have been run first.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `survey_id` | string (UUID) | Yes | ID of the survey |
-
-**Returns**: `survey_id`, `markdown`, `filename`.
-
----
-
-#### `get_survey_participation`
-
-Get participation and completion statistics for a survey.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `survey_id` | string (UUID) | Yes | ID of the survey |
-
-**Returns**: `survey_id`, `total_interviews`, `completed_interviews`, `incomplete_interviews`, `max_responses`, `completion_rate`, and quota metrics if applicable.
-
----
-
-### MCP Usage Example
-
-```
-You: I need to research why users churn from our SaaS product.
-
-AI: [Uses create_study — survey_type: user_experience]
-    Study "SaaS User Churn Analysis" created. Saved as saas-churn-study.xml.
-
-    [Uses create_study_questions — number_of_questions: 10]
-    10 questions generated. Review them in the XML file or at [edit_questions_url].
-
-You: Create 3 personas and run simulations.
-
-AI: [Uses create_simulation_persona — number_of_personas: 3]
-    3 personas created.
-
-    [Uses simulate_interviews × 3]
-    Simulations running. Transcripts available at:
-    1. "Power User" — [url]
-    2. "Occasional User" — [url]
-    3. "Churned User" — [url]
-
-You: Run thematic analysis with cross-case, then get the agent requirements.
-
-AI: [Uses run_thematic_analysis — survey_id, cross_case_analysis: true]
-    Analysis started.
-
-    [Uses get_analysis_status to poll until complete]
-    [Uses get_agent_requirements]
-    Here is the requirements Markdown for your coding agent...
-```
-
-### MCP Security Best Practices
-
-- **Never commit API keys** to version control
-- **Use environment variables** (`${env:DEUTERO_API_KEY}`) in project-level config files
-- **Rotate keys regularly** from the Settings page in your Deutero dashboard
-- **Use separate keys** for development and production environments
-
-### Troubleshooting MCP
-
-| Problem | Solutions |
-|---------|-----------|
-| Server not connecting | Verify API key; check connectivity to `agents.deutero.ai`; confirm config is valid JSON; restart your IDE |
-| "Unauthorized" errors | Regenerate key from Settings; check for extra spaces or quotes in the key value |
-| Tools not visible in IDE | Confirm MCP is enabled in IDE settings; check the config file path is correct; review IDE MCP logs |
-| "Insufficient credits" | Check balance in Deutero dashboard; enable auto top-up; review your spend cap |
-| Simulations timing out | Simulations normally complete in 2–5 minutes; check transcript URL after 5 minutes; verify the study has valid questions |
 
 ---
 
