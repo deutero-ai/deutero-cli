@@ -1,6 +1,6 @@
 [project]
 name = "deutero-cli"
-version = "0.1.1"
+version = "0.1.3"
 description = "CLI client for the Deutero Interview Admin API — manage research surveys, generate questions, simulate interviews, and run thematic analysis from the command line."
 readme = "README.md"
 license = {text = "MIT"}
@@ -30,6 +30,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+tui = [
+    "trogon>=0.6.0",
+]
 dev = [
     "pytest>=8.0",
     "pytest-httpx>=0.34",

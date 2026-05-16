@@ -7,6 +7,7 @@ from typing import Optional
 import click
 
 from deutero_cli.client import DeuteroClient
+from deutero_cli.config import get_active_survey_id
 from deutero_cli.output import print_error, print_json, print_key_value, print_success, print_xml
 
 
@@ -90,17 +91,19 @@ def analysis_status(
 
 
 @analysis_group.command("results-interview")
-@click.argument("interview_id")
+@click.argument("interview_id", required=False, default=None)
 @click.option("--phase", "-p", type=click.Choice(["initial_engagement", "initial_noting", "emergent_themes", "connections"]), required=True, help="Analysis phase to retrieve.")
 @click.option("--output", "-o", "output_file", default=None, help="Write XML result to a file.")
 @click.pass_context
 def analysis_results_interview(
     ctx: click.Context,
-    interview_id: str,
+    interview_id: Optional[str],
     phase: str,
     output_file: Optional[str],
 ) -> None:
     """Get analysis results for a specific interview phase."""
+    if interview_id is None:
+        interview_id = click.prompt("Interview ID")
     client: DeuteroClient = ctx.obj["client"]
     try:
         result = client.get_interview_analysis_results(interview_id, phase)
@@ -118,15 +121,22 @@ def analysis_results_interview(
 
 
 @analysis_group.command("results-survey")
-@click.argument("survey_id")
+@click.argument("survey_id", required=False, default=None)
 @click.option("--output", "-o", "output_file", default=None, help="Write XML result to a file.")
 @click.pass_context
 def analysis_results_survey(
     ctx: click.Context,
-    survey_id: str,
+    survey_id: Optional[str],
     output_file: Optional[str],
 ) -> None:
-    """Get cross-case analysis results for a survey."""
+    """Get cross-case analysis results for a survey.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    """
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
     client: DeuteroClient = ctx.obj["client"]
     try:
         result = client.get_survey_analysis_results(survey_id)

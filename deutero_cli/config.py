@@ -18,7 +18,7 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 ENV_API_KEY = "DEUTERO_API_KEY"
 ENV_BASE_URL = "DEUTERO_BASE_URL"
 
-DEFAULT_BASE_URL = "http://127.0.0.1:8000"
+DEFAULT_BASE_URL = "http://dashboard.deutero.ai:8000"
 
 
 def _load_config_file() -> dict:
@@ -52,4 +52,24 @@ def save_api_key(api_key: str) -> None:
 def save_base_url(base_url: str) -> None:
     data = _load_config_file()
     data["base_url"] = base_url
+    _save_config_file(data)
+
+
+def get_active_project_id() -> Optional[str]:
+    return _load_config_file().get("active_project_id")
+
+
+def save_active_project_id(project_id: str) -> None:
+    data = _load_config_file()
+    data["active_project_id"] = project_id
+    _save_config_file(data)
+
+
+def get_active_survey_id() -> Optional[str]:
+    return _load_config_file().get("active_survey_id")
+
+
+def save_active_survey_id(survey_id: str) -> None:
+    data = _load_config_file()
+    data["active_survey_id"] = survey_id
     _save_config_file(data)

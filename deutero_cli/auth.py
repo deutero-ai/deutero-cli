@@ -18,7 +18,7 @@ import httpx
 
 from deutero_cli.config import CONFIG_DIR, CONFIG_FILE, _load_config_file, _save_config_file
 
-AUTHORIZE_URL = "https://deutero-dashboard-us-841620585212.us-central1.run.app/mcp/authorize"
+AUTHORIZE_URL = "https://dashboard.deutero.ai/connect/authorize"
 STYTCH_TOKEN_URL_TEMPLATE = "https://api.stytch.com/v1/public/{project_id}/oauth2/token"
 
 
@@ -36,7 +36,7 @@ def _generate_code_challenge(verifier: str) -> str:
 def _get_free_port() -> int:
     """Find a free TCP port on localhost."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
+        s.bind(("dashboard.deutero.ai", 0))
         return s.getsockname()[1]
 
 
@@ -120,7 +120,7 @@ def login(client_id: str, project_id: str) -> dict:
     _CallbackHandler.error = None
 
     port = _get_free_port()
-    redirect_uri = f"http://127.0.0.1:{port}/callback"
+    redirect_uri = f"http://dashboard.deutero.ai:{port}/callback"
 
     code_verifier = _generate_code_verifier()
     code_challenge = _generate_code_challenge(code_verifier)
@@ -135,7 +135,7 @@ def login(client_id: str, project_id: str) -> dict:
     })
     auth_url = f"{AUTHORIZE_URL}?{params}"
 
-    server = HTTPServer(("127.0.0.1", port), _CallbackHandler)
+    server = HTTPServer(("dashboard.deutero.ai", port), _CallbackHandler)
     server_thread = Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
 

@@ -11,7 +11,8 @@ from typing import Optional
 import click
 
 from deutero_cli.client import DeuteroClient
-from deutero_cli.output import print_error, print_json, print_success, print_xml
+from deutero_cli.config import get_active_survey_id
+from deutero_cli.output import print_error, print_items_table, print_json, print_key_value, print_success, print_xml
 
 
 @click.group("questions")
@@ -71,7 +72,7 @@ def _image_data_from_file(image_file: str) -> str:
 
 
 @questions_group.command("generate")
-@click.argument("survey_id")
+@click.argument("survey_id", required=False, default=None)
 @click.option("--count", "-n", "number_of_questions", type=int, required=True, help="Number of questions to generate (1–25).")
 @click.option("--instructions", "-i", "additional_instructions", default=None, help="Additional instructions for question generation.")
 @click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
@@ -79,13 +80,20 @@ def _image_data_from_file(image_file: str) -> str:
 @click.pass_context
 def questions_generate(
     ctx: click.Context,
-    survey_id: str,
+    survey_id: Optional[str],
     number_of_questions: int,
     additional_instructions: Optional[str],
     output_file: Optional[str],
     xml_output: Optional[str],
 ) -> None:
-    """Generate interview questions for a survey."""
+    """Generate interview questions for a survey.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    """
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
     if number_of_questions < 1 or number_of_questions > 25:
         print_error("Number of questions must be between 1 and 25.")
         raise SystemExit(1)
@@ -109,11 +117,13 @@ def questions_generate(
 
     question_list = result.get("question_list", [])
     print_success(f"Generated {len(question_list)} question(s) for survey {survey_id}")
-    print_json(result, output_file)
+    print_items_table(question_list, title="Generated Questions", columns=["id", "question", "explanation"])
+    if output_file:
+        print_json(result, output_file)
 
 
 @questions_group.command("create")
-@click.argument("survey_id")
+@click.argument("survey_id", required=False, default=None)
 @click.option("--question", required=True, help="Question text.")
 @click.option("--explanation", default=None, help="Interviewer guidance/explanation.")
 @click.option("--scale-json", default=None, help="Scale config JSON object.")
@@ -141,6 +151,15 @@ def questions_create(
     payload_json: Optional[str],
     output_file: Optional[str],
 ) -> None:
+    """Create a new interview question for a survey.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    """
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
+
     payload = _json_object(payload_json, "--payload-json") or {}
     payload.update(
         _question_payload(
@@ -165,14 +184,27 @@ def questions_create(
         raise SystemExit(1)
 
     print_success(f"Question created — ID: {result.get('id', '—')}")
-    print_json(result, output_file)
+    print_key_value(
+        {
+            "ID": result.get("id"),
+            "Question": result.get("question"),
+            "Explanation": result.get("explanation"),
+            "Survey ID": result.get("survey_id"),
+        },
+        title="Created Question",
+    )
+    if output_file:
+        print_json(result, output_file)
 
 
 @questions_group.command("get")
-@click.argument("question_id")
+@click.argument("question_id", required=False, default=None)
 @click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
 @click.pass_context
-def questions_get(ctx: click.Context, question_id: str, output_file: Optional[str]) -> None:
+def questions_get(ctx: click.Context, question_id: Optional[str], output_file: Optional[str]) -> None:
+    """Retrieve a single question by ID."""
+    if question_id is None:
+        question_id = click.prompt("Question ID")
     client: DeuteroClient = ctx.obj["client"]
     try:
         result = client.get_question(question_id)
@@ -180,11 +212,24 @@ def questions_get(ctx: click.Context, question_id: str, output_file: Optional[st
         print_error(str(exc))
         raise SystemExit(1)
 
-    print_json(result, output_file)
+    print_key_value(
+        {
+            "ID": result.get("id"),
+            "Question": result.get("question"),
+            "Explanation": result.get("explanation"),
+            "Survey ID": result.get("survey_id"),
+            "Follow-up": result.get("follow_up"),
+            "Min turns": result.get("min_turns"),
+            "Max turns": result.get("max_turns"),
+        },
+        title="Question",
+    )
+    if output_file:
+        print_json(result, output_file)
 
 
 @questions_group.command("update")
-@click.argument("question_id")
+@click.argument("question_id", required=False, default=None)
 @click.option("--question", default=None, help="Question text.")
 @click.option("--explanation", default=None, help="Interviewer guidance/explanation.")
 @click.option("--scale-json", default=None, help="Scale config JSON object.")
@@ -214,6 +259,9 @@ def questions_update(
     payload_json: Optional[str],
     output_file: Optional[str],
 ) -> None:
+    """Update an existing question by ID."""
+    if question_id is None:
+        question_id = click.prompt("Question ID")
     payload = _json_object(payload_json, "--payload-json") or {}
     payload.update(
         _question_payload(
@@ -242,15 +290,31 @@ def questions_update(
         raise SystemExit(1)
 
     print_success(f"Question updated — ID: {result.get('id', question_id)}")
-    print_json(result, output_file)
+    print_key_value(
+        {
+            "ID": result.get("id"),
+            "Question": result.get("question"),
+            "Explanation": result.get("explanation"),
+        },
+        title="Updated Question",
+    )
+    if output_file:
+        print_json(result, output_file)
 
 
 @questions_group.command("delete")
-@click.argument("question_id")
-@click.option("--survey-id", required=True, help="Survey ID the question belongs to.")
+@click.argument("question_id", required=False, default=None)
+@click.option("--survey-id", default=None, help="Survey ID the question belongs to (defaults to active survey).")
 @click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
 @click.pass_context
-def questions_delete(ctx: click.Context, question_id: str, survey_id: str, output_file: Optional[str]) -> None:
+def questions_delete(ctx: click.Context, question_id: Optional[str], survey_id: Optional[str], output_file: Optional[str]) -> None:
+    """Delete a question by ID."""
+    if question_id is None:
+        question_id = click.prompt("Question ID")
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
     client: DeuteroClient = ctx.obj["client"]
     try:
         result = client.delete_question(question_id, survey_id)
@@ -259,15 +323,25 @@ def questions_delete(ctx: click.Context, question_id: str, survey_id: str, outpu
         raise SystemExit(1)
 
     print_success(f"Question deleted — ID: {question_id}")
-    print_json(result, output_file)
+    if output_file:
+        print_json(result, output_file)
 
 
 @questions_group.command("reorder")
-@click.argument("survey_id")
+@click.argument("survey_id", required=False, default=None)
 @click.argument("question_ids", nargs=-1)
 @click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
 @click.pass_context
-def questions_reorder(ctx: click.Context, survey_id: str, question_ids: tuple[str, ...], output_file: Optional[str]) -> None:
+def questions_reorder(ctx: click.Context, survey_id: Optional[str], question_ids: tuple[str, ...], output_file: Optional[str]) -> None:
+    """Reorder questions for a survey.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    Provide QUESTION_IDS as space-separated UUIDs in the desired order.
+    """
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
     if not question_ids:
         print_error("Provide at least one question ID.")
         raise SystemExit(1)
@@ -280,11 +354,12 @@ def questions_reorder(ctx: click.Context, survey_id: str, question_ids: tuple[st
         raise SystemExit(1)
 
     print_success(f"Reordered {len(question_ids)} question(s) for survey {survey_id}")
-    print_json(result, output_file)
+    if output_file:
+        print_json(result, output_file)
 
 
 @questions_group.command("upload-image")
-@click.argument("question_id")
+@click.argument("question_id", required=False, default=None)
 @click.option("--image-file", type=click.Path(exists=True, dir_okay=False), default=None, help="Image file to upload.")
 @click.option("--image-data", default=None, help="Base64 data URL to upload.")
 @click.option("--label", default=None, help="Optional image label.")
@@ -292,12 +367,15 @@ def questions_reorder(ctx: click.Context, survey_id: str, question_ids: tuple[st
 @click.pass_context
 def questions_upload_image(
     ctx: click.Context,
-    question_id: str,
+    question_id: Optional[str],
     image_file: Optional[str],
     image_data: Optional[str],
     label: Optional[str],
     output_file: Optional[str],
 ) -> None:
+    """Upload an image for a question."""
+    if question_id is None:
+        question_id = click.prompt("Question ID")
     if bool(image_file) == bool(image_data):
         print_error("Provide exactly one of --image-file or --image-data.")
         raise SystemExit(1)
@@ -314,20 +392,24 @@ def questions_upload_image(
         raise SystemExit(1)
 
     print_success(f"Image uploaded — ID: {result.get('id', '—')}")
-    print_json(result, output_file)
+    if output_file:
+        print_json(result, output_file)
 
 
 @questions_group.command("reorder-images")
-@click.argument("question_id")
+@click.argument("question_id", required=False, default=None)
 @click.argument("image_ids", nargs=-1)
 @click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
 @click.pass_context
 def questions_reorder_images(
     ctx: click.Context,
-    question_id: str,
+    question_id: Optional[str],
     image_ids: tuple[str, ...],
     output_file: Optional[str],
 ) -> None:
+    """Reorder images for a question."""
+    if question_id is None:
+        question_id = click.prompt("Question ID")
     if not image_ids:
         print_error("Provide at least one image ID.")
         raise SystemExit(1)
@@ -340,4 +422,5 @@ def questions_reorder_images(
         raise SystemExit(1)
 
     print_success(f"Reordered {len(image_ids)} image(s) for question {question_id}")
-    print_json(result, output_file)
+    if output_file:
+        print_json(result, output_file)

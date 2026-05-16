@@ -8,12 +8,41 @@ from typing import Optional
 import click
 
 from deutero_cli.client import DeuteroClient
-from deutero_cli.output import print_error, print_json, print_key_value, print_success, print_xml
+from deutero_cli.config import get_active_project_id, get_active_survey_id, save_active_survey_id
+from deutero_cli.output import print_error, print_items_table, print_json, print_key_value, print_success, print_xml, prompt_select_from_list
 
 
 @click.group("surveys")
 def surveys_group() -> None:
     """Manage research surveys."""
+
+
+@surveys_group.command("list")
+@click.argument("project_id", required=False, default=None)
+@click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
+@click.pass_context
+def surveys_list(ctx: click.Context, project_id: Optional[str], output_file: Optional[str]) -> None:
+    """List surveys for a project.
+
+    PROJECT_ID defaults to the active project (set via `deutero projects set-active`).
+    """
+    if project_id is None:
+        project_id = get_active_project_id()
+    if project_id is None:
+        project_id = click.prompt("Project ID")
+
+    client: DeuteroClient = ctx.obj["client"]
+    try:
+        result = client.list_project_surveys(project_id)
+    except Exception as exc:
+        print_error(str(exc))
+        raise SystemExit(1)
+
+    surveys = [{**s, "name": s.get("alias")} for s in result.get("surveys", [])]
+    print_success(f"Found {len(surveys)} survey(s) for project {project_id}")
+    print_items_table(surveys, title="Surveys", columns=["id", "name", "description"])
+    if output_file:
+        print_json(result, output_file)
 
 
 @surveys_group.command("generate")
@@ -110,11 +139,18 @@ def surveys_generate(
 
 
 @surveys_group.command("participation")
-@click.argument("survey_id")
+@click.argument("survey_id", required=False, default=None)
 @click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
 @click.pass_context
-def surveys_participation(ctx: click.Context, survey_id: str, output_file: Optional[str]) -> None:
-    """Get participation statistics for a survey."""
+def surveys_participation(ctx: click.Context, survey_id: Optional[str], output_file: Optional[str]) -> None:
+    """Get participation statistics for a survey.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    """
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
     client: DeuteroClient = ctx.obj["client"]
     try:
         result = client.get_participation(survey_id)
@@ -141,11 +177,18 @@ def surveys_participation(ctx: click.Context, survey_id: str, output_file: Optio
 
 
 @surveys_group.command("agent-requirements")
-@click.argument("survey_id")
+@click.argument("survey_id", required=False, default=None)
 @click.option("--output", "-o", "output_file", default=None, help="Write the markdown to a file.")
 @click.pass_context
-def surveys_agent_requirements(ctx: click.Context, survey_id: str, output_file: Optional[str]) -> None:
-    """Retrieve or generate agent requirements markdown for a survey."""
+def surveys_agent_requirements(ctx: click.Context, survey_id: Optional[str], output_file: Optional[str]) -> None:
+    """Retrieve or generate agent requirements markdown for a survey.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    """
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
     client: DeuteroClient = ctx.obj["client"]
     try:
         result = client.get_agent_requirements(survey_id)
@@ -162,12 +205,19 @@ def surveys_agent_requirements(ctx: click.Context, survey_id: str, output_file: 
 
 
 @surveys_group.command("model-tier")
-@click.argument("survey_id")
+@click.argument("survey_id", required=False, default=None)
 @click.option("--set", "model_tier", type=click.Choice(["open_weights", "premium", "frontier"]), default=None, help="Set the survey model tier.")
 @click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
 @click.pass_context
-def surveys_model_tier(ctx: click.Context, survey_id: str, model_tier: Optional[str], output_file: Optional[str]) -> None:
-    """Get or set the model tier for a survey."""
+def surveys_model_tier(ctx: click.Context, survey_id: Optional[str], model_tier: Optional[str], output_file: Optional[str]) -> None:
+    """Get or set the model tier for a survey.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    """
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
     client: DeuteroClient = ctx.obj["client"]
     try:
         result = client.set_survey_model_tier(survey_id, model_tier) if model_tier else client.get_survey_model_tier(survey_id)
@@ -208,11 +258,18 @@ def surveys_suggest_from_site(ctx: click.Context, url: str, language: str, outpu
 
 
 @surveys_group.command("question-list")
-@click.argument("survey_id")
+@click.argument("survey_id", required=False, default=None)
 @click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
 @click.pass_context
-def surveys_question_list(ctx: click.Context, survey_id: str, output_file: Optional[str]) -> None:
-    """Get the full question list for a survey."""
+def surveys_question_list(ctx: click.Context, survey_id: Optional[str], output_file: Optional[str]) -> None:
+    """Get the full question list for a survey.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    """
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
     client: DeuteroClient = ctx.obj["client"]
     try:
         result = client.get_question_list(survey_id)
@@ -222,22 +279,38 @@ def surveys_question_list(ctx: click.Context, survey_id: str, output_file: Optio
 
     questions = result.get("questions", [])
     print_success(f"Found {len(questions)} question(s) for survey {survey_id}")
-    print_json(result, output_file)
+    print_items_table(questions, title="Questions", columns=["id", "question", "explanation"])
+    if output_file:
+        print_json(result, output_file)
 
 
-@surveys_group.command("interviews")
-@click.argument("survey_id")
-@click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
+@surveys_group.command("set-active")
+@click.option("--project-id", default=None, help="Project ID to list surveys from (defaults to active project).")
 @click.pass_context
-def surveys_interviews(ctx: click.Context, survey_id: str, output_file: Optional[str]) -> None:
-    """List interviews for a survey."""
+def surveys_set_active(ctx: click.Context, project_id: str) -> None:
+    """Set the active survey (interactive selection)."""
+    if project_id is None:
+        project_id = get_active_project_id()
+    if project_id is None:
+        project_id = click.prompt("Project ID")
+
     client: DeuteroClient = ctx.obj["client"]
     try:
-        result = client.list_survey_interviews(survey_id)
+        result = client.list_project_surveys(project_id)
     except Exception as exc:
         print_error(str(exc))
         raise SystemExit(1)
 
-    interviews = result.get("interviews", [])
-    print_success(f"Found {len(interviews)} interview(s) for survey {survey_id}")
-    print_json(result, output_file)
+    surveys = result.get("surveys", [])
+    if not surveys:
+        print_error(f"No surveys found for project {project_id}.")
+        raise SystemExit(1)
+
+    chosen = prompt_select_from_list(
+        surveys,
+        lambda s: f"[bold]{s.get('alias', '\u2014')}[/bold]  [dim]{s.get('id')}[/dim]",
+        "Select survey",
+    )
+    save_active_survey_id(chosen["id"])
+    print_success(f"Active survey set to: {chosen.get('alias', chosen['id'])} ({chosen['id']})")
+

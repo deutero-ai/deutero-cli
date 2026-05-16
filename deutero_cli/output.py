@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import click
 from rich.console import Console
@@ -57,3 +56,57 @@ def print_xml(xml_content: str, output_file: Optional[str] = None) -> None:
     else:
         syntax = Syntax(xml_content, "xml", theme="monokai", line_numbers=False)
         console.print(syntax)
+
+
+def print_items_table(
+    items: List[Dict[str, Any]],
+    title: Optional[str] = None,
+    columns: Optional[List[str]] = None,
+) -> None:
+    """Print a list of dicts as a Rich table."""
+    if not items:
+        console.print("[dim]No items found.[/dim]")
+        return
+    cols = columns if columns is not None else list(items[0].keys())
+    table = Table(title=title, title_style="bold cyan", show_lines=False, box=None, pad_edge=False)
+    for col in cols:
+        header = col.replace("_", " ").title()
+        table.add_column(header, style="cyan" if col == "id" else "", no_wrap=(col == "id"))
+    for item in items:
+        row: List[str] = []
+        for col in cols:
+            val = item.get(col)
+            if val is None:
+                row.append("[dim]—[/dim]")
+            elif isinstance(val, bool):
+                row.append("[green]✓[/green]" if val else "[dim]✗[/dim]")
+            else:
+                s = str(val)
+                if len(s) > 80:
+                    s = s[:77] + "…"
+                row.append(s)
+        table.add_row(*row)
+    console.print(table)
+
+
+def print_transcript(messages: List[Dict[str, Any]], interview_id: str) -> None:
+    """Pretty-print interview transcript messages."""
+    console.print(f"\n[bold cyan]Transcript — {interview_id}[/bold cyan]\n")
+    for msg in messages:
+        role = msg.get("role", "unknown")
+        content = msg.get("content", "")
+        if role == "assistant":
+            label = "[bold blue]Interviewer[/bold blue]"
+        elif role == "user":
+            label = "[bold green]Respondent[/bold green]"
+        else:
+            label = f"[dim]{role}[/dim]"
+        console.print(f"{label}: {content}\n")
+
+
+def prompt_select_from_list(items: List[Dict[str, Any]], display_fn: Any, prompt_text: str) -> Dict[str, Any]:
+    """Display a numbered list and prompt the user to pick one item."""
+    for i, item in enumerate(items, 1):
+        console.print(f"  [dim]{i}.[/dim] {display_fn(item)}")
+    idx = click.prompt(prompt_text, type=click.IntRange(1, len(items)))
+    return items[idx - 1]

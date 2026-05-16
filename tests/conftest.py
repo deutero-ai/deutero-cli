@@ -60,7 +60,7 @@ def survey_generation_response():
         "research_questions": [{"id": "1", "question": "How do users onboard?"}],
         "research_objectives": [{"id": "1", "objective": "Understand onboarding pain points"}],
         "xml_file": '<?xml version="1.0"?><surveyExport><survey><alias>Test</alias></survey></surveyExport>',
-        "url": "http://127.0.0.1:5000/survey-details?survey_id=" + SAMPLE_SURVEY_ID,
+        "url": "http://dashboard.deutero.ai:5000/survey-details?survey_id=" + SAMPLE_SURVEY_ID,
         "agent_instructions": "Create a .xml file.",
     }
 
@@ -116,8 +116,8 @@ def question_generation_response():
                 "question_expected_image": None,
             },
         ],
-        "edit_questions_url": f"http://127.0.0.1:5000/edit-survey?survey_id={SAMPLE_SURVEY_ID}",
-        "interview_url": f"http://127.0.0.1:5000/?survey_id={SAMPLE_SURVEY_ID}",
+        "edit_questions_url": f"http://dashboard.deutero.ai:5000/edit-survey?survey_id={SAMPLE_SURVEY_ID}",
+        "interview_url": f"http://dashboard.deutero.ai:5000/?survey_id={SAMPLE_SURVEY_ID}",
         "xml_file": "<surveyExport/>",
         "agent_instructions": "Create or update a .xml file.",
     }

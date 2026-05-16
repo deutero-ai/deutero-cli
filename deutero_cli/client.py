@@ -126,6 +126,9 @@ class DeuteroClient:
     def generate_personas(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         return self.post("/personas/generate", payload)
 
+    def list_personas(self, survey_id: str) -> Dict[str, Any]:
+        return self.get("/personas/list", {"survey_id": survey_id})
+
     # ── Interview endpoints ──────────────────────────────────────────
 
     def simulate_interview(self, payload: Dict[str, Any]) -> Dict[str, Any]:

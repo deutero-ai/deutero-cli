@@ -7,6 +7,7 @@ from typing import Optional
 import click
 
 from deutero_cli.client import DeuteroClient
+from deutero_cli.config import get_active_survey_id
 from deutero_cli.output import print_error, print_json, print_key_value
 
 
@@ -81,19 +82,26 @@ def credits_balance(ctx: click.Context, output_file: Optional[str]) -> None:
 
 
 @credits_group.command("estimate-simulation")
-@click.argument("survey_id")
+@click.argument("survey_id", required=False, default=None)
 @click.option("--model-tier", "-m", type=MODEL_TIER, default="open_weights", help="Model tier to use.")
 @click.option("--participants", "-n", type=int, default=1, show_default=True, help="Number of participants to simulate.")
 @click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
 @click.pass_context
 def credits_estimate_simulation(
     ctx: click.Context,
-    survey_id: str,
+    survey_id: Optional[str],
     model_tier: str,
     participants: int,
     output_file: Optional[str],
 ) -> None:
-    """Estimate credits for a simulation run."""
+    """Estimate credits for a simulation run.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    """
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
     if participants < 1:
         print_error("Participants must be greater than zero.")
         raise SystemExit(1)
@@ -109,19 +117,26 @@ def credits_estimate_simulation(
 
 
 @credits_group.command("estimate-analysis")
-@click.argument("survey_id")
+@click.argument("survey_id", required=False, default=None)
 @click.option("--model-tier", "-m", type=MODEL_TIER, default="open_weights", help="Model tier to use.")
 @click.option("--interviews", "-n", type=int, default=1, show_default=True, help="Number of interviews to analyze.")
 @click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
 @click.pass_context
 def credits_estimate_analysis(
     ctx: click.Context,
-    survey_id: str,
+    survey_id: Optional[str],
     model_tier: str,
     interviews: int,
     output_file: Optional[str],
 ) -> None:
-    """Estimate credits for thematic analysis."""
+    """Estimate credits for thematic analysis.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    """
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
     if interviews < 1:
         print_error("Interviews must be greater than zero.")
         raise SystemExit(1)
@@ -137,7 +152,7 @@ def credits_estimate_analysis(
 
 
 @credits_group.command("estimate-survey")
-@click.argument("survey_id")
+@click.argument("survey_id", required=False, default=None)
 @click.option("--model-tier", "-m", type=MODEL_TIER, default="open_weights", help="Model tier to use.")
 @click.option("--participants", "-n", type=int, default=1, show_default=True, help="Number of participants.")
 @click.option("--include-analysis/--no-include-analysis", default=False, help="Include analysis credits in the estimate.")
@@ -145,13 +160,20 @@ def credits_estimate_analysis(
 @click.pass_context
 def credits_estimate_survey(
     ctx: click.Context,
-    survey_id: str,
+    survey_id: Optional[str],
     model_tier: str,
     participants: int,
     include_analysis: bool,
     output_file: Optional[str],
 ) -> None:
-    """Estimate credits for a full survey."""
+    """Estimate credits for a full survey.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    """
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
     if participants < 1:
         print_error("Participants must be greater than zero.")
         raise SystemExit(1)
