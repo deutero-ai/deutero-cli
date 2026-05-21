@@ -8,6 +8,7 @@ from typing import Optional
 import click
 
 from deutero_cli.client import DeuteroClient
+from deutero_cli.commands.simulate import simulate_run
 from deutero_cli.config import get_active_survey_id
 from deutero_cli.output import (
     print_error,
@@ -23,6 +24,9 @@ from deutero_cli.output import (
 @click.group("interviews")
 def interviews_group() -> None:
     """Manage and inspect interviews."""
+
+
+interviews_group.add_command(simulate_run, "simulate")
 
 
 @interviews_group.command("list")

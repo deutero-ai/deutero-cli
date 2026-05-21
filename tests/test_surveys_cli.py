@@ -196,6 +196,57 @@ class TestSurveysQuestionList:
             assert result.exit_code == 1
 
 
+class TestSurveysExtractFromGuide:
+    def test_extract_both(self, invoke, guide_extraction_response, tmp_path):
+        guide = tmp_path / "guide.txt"
+        guide.write_text("Research guide content...")
+        with patch("deutero_cli.client.DeuteroClient.extract_from_guide", return_value=guide_extraction_response) as mock:
+            result = invoke(["surveys", "extract-from-guide", str(guide)])
+            assert result.exit_code == 0
+            assert "Onboarding UX Study" in result.output
+            assert "2 question(s)" in result.output
+            mock.assert_called_once_with({"text": "Research guide content...", "extract": "both"})
+
+    def test_extract_details_only(self, invoke, guide_extraction_response, tmp_path):
+        guide = tmp_path / "guide.txt"
+        guide.write_text("Research guide content...")
+        details_only = {"details": guide_extraction_response["details"], "questions": None}
+        with patch("deutero_cli.client.DeuteroClient.extract_from_guide", return_value=details_only) as mock:
+            result = invoke(["surveys", "extract-from-guide", str(guide), "--extract", "details"])
+            assert result.exit_code == 0
+            assert "Onboarding UX Study" in result.output
+            mock.assert_called_once_with({"text": "Research guide content...", "extract": "details"})
+
+    def test_extract_questions_only(self, invoke, guide_extraction_response, tmp_path):
+        guide = tmp_path / "guide.txt"
+        guide.write_text("Research guide content...")
+        questions_only = {"details": None, "questions": guide_extraction_response["questions"]}
+        with patch("deutero_cli.client.DeuteroClient.extract_from_guide", return_value=questions_only) as mock:
+            result = invoke(["surveys", "extract-from-guide", str(guide), "--extract", "questions"])
+            assert result.exit_code == 0
+            assert "2 question(s)" in result.output
+            mock.assert_called_once_with({"text": "Research guide content...", "extract": "questions"})
+
+    def test_extract_with_output_file(self, invoke, guide_extraction_response, tmp_path):
+        guide = tmp_path / "guide.txt"
+        guide.write_text("Research guide content...")
+        out = tmp_path / "out.json"
+        with patch("deutero_cli.client.DeuteroClient.extract_from_guide", return_value=guide_extraction_response):
+            result = invoke(["surveys", "extract-from-guide", str(guide), "--output", str(out)])
+            assert result.exit_code == 0
+            data = json.loads(out.read_text())
+            assert data["details"]["name"] == "Onboarding UX Study"
+
+    def test_extract_api_error(self, invoke, tmp_path):
+        from deutero_cli.client import DeuteroAPIError
+
+        guide = tmp_path / "guide.txt"
+        guide.write_text("Research guide content...")
+        with patch("deutero_cli.client.DeuteroClient.extract_from_guide", side_effect=DeuteroAPIError(422, "Invalid input")):
+            result = invoke(["surveys", "extract-from-guide", str(guide)])
+            assert result.exit_code == 1
+
+
 class TestSurveysInterviews:
     def test_survey_interviews_success(self, invoke, survey_interviews_response):
         with patch("deutero_cli.client.DeuteroClient.list_survey_interviews", return_value=survey_interviews_response) as mock:

@@ -34,11 +34,12 @@ class DeuteroClient:
 
     def _headers(self) -> Dict[str, str]:
         headers: Dict[str, str] = {"Content-Type": "application/json"}
-        token = get_access_token()
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-        elif self.api_key:
+        if self.api_key:
             headers["X-API-Key"] = self.api_key
+        else:
+            token = get_access_token()
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
         return headers
 
     def _url(self, path: str) -> str:
@@ -70,12 +71,23 @@ class DeuteroClient:
             resp = http.put(self._url(path), json=json_body or {}, headers=self._headers())
         return self._handle_response(resp)
 
+    def patch(self, path: str, json_body: Optional[Dict[str, Any]] = None) -> Any:
+        with httpx.Client(timeout=self.timeout) as http:
+            resp = http.patch(self._url(path), json=json_body or {}, headers=self._headers())
+        return self._handle_response(resp)
+
     def delete(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
         with httpx.Client(timeout=self.timeout) as http:
             resp = http.delete(self._url(path), params=params, headers=self._headers())
         return self._handle_response(resp)
 
     # ── Survey endpoints ─────────────────────────────────────────────
+
+    def create_survey(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.post("/surveys/create", payload)
+
+    def update_survey(self, survey_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.patch(f"/surveys/{survey_id}", payload)
 
     def generate_survey(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         return self.post("/surveys/generate", payload)
@@ -94,6 +106,9 @@ class DeuteroClient:
 
     def suggest_from_site(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         return self.post("/suggest-from-site", payload)
+
+    def extract_from_guide(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.post("/surveys/extract-from-guide", payload)
 
     # ── Question endpoints ───────────────────────────────────────────
 
@@ -180,3 +195,14 @@ class DeuteroClient:
 
     def get_interview_transcript(self, interview_id: str) -> Dict[str, Any]:
         return self.get(f"/interviews/{interview_id}/transcript")
+
+    # ── Webhook endpoints ────────────────────────────────────────────
+
+    def list_webhook_endpoints(self) -> Dict[str, Any]:
+        return self.get("/webhooks")
+
+    def update_webhook_endpoint(self, endpoint_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.patch(f"/webhooks/{endpoint_id}", payload)
+
+    def delete_webhook_endpoint(self, endpoint_id: str) -> Dict[str, Any]:
+        return self.delete(f"/webhooks/{endpoint_id}")

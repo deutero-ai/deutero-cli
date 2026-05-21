@@ -22,6 +22,7 @@ SAMPLE_PERSONA_ID = "11223344-5566-7788-99aa-bbccddeeff00"
 SAMPLE_QUESTION_ID = "01020304-0506-0708-090a-0b0c0d0e0f10"
 SAMPLE_IMAGE_ID = "11111111-2222-3333-4444-555555555555"
 SAMPLE_PROJECT_ID = "99999999-8888-7777-6666-555555555555"
+SAMPLE_ENDPOINT_ID = "aaaabbbb-cccc-dddd-eeee-ffff00001111"
 
 
 @pytest.fixture
@@ -373,6 +374,102 @@ def survey_interviews_response():
             {"id": SAMPLE_INTERVIEW_ID, "participant_name": "Sarah", "start_time": "2025-01-20T09:00:00", "end_time": "2025-01-20T09:25:00", "completed": True, "simulated": True, "termination_reason": None},
             {"id": "eeeeeeee-dddd-cccc-bbbb-aaaaaaaaaaaa", "participant_name": "James", "start_time": "2025-01-21T10:00:00", "end_time": None, "completed": False, "simulated": True, "termination_reason": "timeout"},
         ],
+    }
+
+
+@pytest.fixture
+def guide_extraction_response():
+    return {
+        "details": {
+            "name": "Onboarding UX Study",
+            "description": "A study about onboarding experiences.",
+            "research_questions": "How do users experience onboarding?",
+            "objectives": "Identify pain points in the onboarding flow.",
+            "target_population": "New users of the product.",
+        },
+        "questions": [
+            {
+                "question": "Tell me about your onboarding experience.",
+                "interviewer_guidance": "Probe for specifics.",
+                "type": "text",
+                "min_turns": None,
+                "scale_min": None,
+                "scale_max": None,
+                "scale_min_label": None,
+                "scale_max_label": None,
+                "options": None,
+                "slots": None,
+                "expected_image": None,
+            },
+            {
+                "question": "How satisfied were you with the process?",
+                "interviewer_guidance": "",
+                "type": "scale",
+                "min_turns": None,
+                "scale_min": 1,
+                "scale_max": 5,
+                "scale_min_label": "Not satisfied",
+                "scale_max_label": "Very satisfied",
+                "options": None,
+                "slots": None,
+                "expected_image": None,
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def survey_create_response():
+    return {
+        "study_id": SAMPLE_SURVEY_ID,
+        "project_id": SAMPLE_PROJECT_ID,
+        "name": "Onboarding Study",
+        "description": "A study about onboarding.",
+        "survey_type": "user_experience",
+        "research_questions": "How do users experience onboarding?",
+        "objectives": "Identify pain points in the onboarding flow.",
+        "target_population": "New users of the product.",
+        "anonymous": False,
+        "model_tier": "open_weights",
+        "model_id": "llama-3.1-8b-instruct",
+        "model_provider": "meta",
+        "redirect_url": None,
+        "language": "English",
+        "date_created": "2025-01-15T10:00:00",
+        "url": f"https://dashboard.deutero.ai/survey-details?survey_id={SAMPLE_SURVEY_ID}",
+    }
+
+
+@pytest.fixture
+def webhook_endpoint_response():
+    return {
+        "id": SAMPLE_ENDPOINT_ID,
+        "label": "My Webhook",
+        "url": "https://example.com/webhook",
+        "enabled": True,
+        "events": ["interview.completed", "survey.completed"],
+        "created_at": "2025-01-01T00:00:00",
+        "updated_at": "2025-01-15T12:00:00",
+    }
+
+
+@pytest.fixture
+def webhook_list_response(webhook_endpoint_response):
+    return {
+        "endpoints": [
+            webhook_endpoint_response,
+            {
+                "id": "bbbbcccc-dddd-eeee-ffff-000011112222",
+                "label": "Staging Hook",
+                "url": "https://staging.example.com/webhook",
+                "enabled": False,
+                "events": ["interview.completed"],
+                "created_at": "2025-02-01T00:00:00",
+                "updated_at": "2025-02-01T00:00:00",
+            },
+        ],
+        "total": 2,
+        "event_types": ["interview.completed", "survey.completed", "analysis.completed"],
     }
 
 

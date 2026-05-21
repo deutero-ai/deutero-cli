@@ -45,6 +45,7 @@ from deutero_cli.commands.projects import projects_group
 from deutero_cli.commands.questions import questions_group
 from deutero_cli.commands.simulate import simulate_group
 from deutero_cli.commands.surveys import surveys_group
+from deutero_cli.commands.webhooks import webhooks_group
 
 
 @tui()
@@ -69,6 +70,7 @@ cli.add_command(interviews_group)
 cli.add_command(simulate_group)
 cli.add_command(analysis_group)
 cli.add_command(credits_group)
+cli.add_command(webhooks_group)
 
 
 if __name__ == "__main__":

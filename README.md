@@ -176,6 +176,17 @@ deutero surveys suggest-from-site https://example.com --language English
 # Get or set model tier for an existing survey
 deutero surveys model-tier <SURVEY_ID>
 deutero surveys model-tier <SURVEY_ID> --set premium
+
+# Create a survey directly (without AI generation)
+deutero surveys create \
+  --project-id <PROJECT_ID> \
+  --survey-type user_experience \
+  --name "Onboarding Study" \
+  --model-tier premium
+
+# Update an existing survey's properties
+deutero surveys update <SURVEY_ID> --name "Renamed Study" --language Spanish
+deutero surveys update <SURVEY_ID> --model-tier frontier --anonymous
 ```
 
 ### 3. Generate interview questions
@@ -320,6 +331,43 @@ deutero projects list-surveys <PROJECT_ID>
 # Get the full question list for a survey (uses active survey if set)
 deutero surveys question-list
 deutero surveys question-list <SURVEY_ID>
+
+# List interviews for a survey directly from the surveys group
+deutero surveys interviews
+deutero surveys interviews <SURVEY_ID>
+```
+
+### 14. Extract details and questions from a research guide
+
+```bash
+# Extract both study details and interview questions (default)
+deutero surveys extract-from-guide guide.txt
+
+# Extract only study metadata
+deutero surveys extract-from-guide guide.txt --extract details
+
+# Extract only interview questions
+deutero surveys extract-from-guide guide.txt --extract questions
+
+# Save full JSON response to a file
+deutero surveys extract-from-guide guide.txt --output extracted.json
+```
+
+### 15. Manage webhook endpoints
+
+```bash
+# List all configured webhook endpoints
+deutero webhooks list
+
+# Update an endpoint's label, URL, enabled state, or subscribed events
+deutero webhooks update <ENDPOINT_ID> --label "Production Hook"
+deutero webhooks update <ENDPOINT_ID> --url https://new.example.com/hook
+deutero webhooks update <ENDPOINT_ID> --disable
+deutero webhooks update <ENDPOINT_ID> --enable --event interview.completed --event survey.completed
+
+# Delete a webhook endpoint (prompts for confirmation)
+deutero webhooks delete <ENDPOINT_ID>
+deutero webhooks delete <ENDPOINT_ID> --yes   # skip confirmation
 ```
 
 ---
@@ -378,11 +426,15 @@ deutero
 ├── surveys
 │   ├── list [PROJECT_ID]                List surveys for a project
 │   ├── generate                         Generate a research survey
+│   ├── create                           Create a survey directly
+│   ├── update <SURVEY_ID>               Update survey properties
 │   ├── participation [SURVEY_ID]        Get participation statistics
 │   ├── agent-requirements [SURVEY_ID]   Get agent requirements markdown
 │   ├── model-tier [SURVEY_ID]           Get or set survey model tier
 │   ├── suggest-from-site <URL>          Generate study suggestion from a URL
 │   ├── question-list [SURVEY_ID]        Get full question list for a survey
+│   ├── interviews [SURVEY_ID]           List interviews for a survey
+│   ├── extract-from-guide <GUIDE_FILE>  Extract details/questions from a guide
 │   └── set-active                       Set active survey (interactive list)
 ├── questions
 │   ├── generate [SURVEY_ID]             Generate interview questions
@@ -402,11 +454,15 @@ deutero
 │   └── analysis [INTERVIEW_ID]          Run thematic analysis for an interview
 ├── simulate
 │   └── run [SURVEY_ID] [PERSONA_ID]     Simulate an interview
-└── analysis
-    ├── run                              Run thematic analysis
-    ├── status                           Get analysis status
-    ├── results-interview [ID]           Get per-phase results
-    └── results-survey [ID]              Get cross-case results
+├── analysis
+│   ├── run                              Run thematic analysis
+│   ├── status                           Get analysis status
+│   ├── results-interview [ID]           Get per-phase results
+│   └── results-survey [ID]              Get cross-case results
+└── webhooks
+    ├── list                             List all webhook endpoints
+    ├── update <ENDPOINT_ID>             Update a webhook endpoint
+    └── delete <ENDPOINT_ID>             Delete a webhook endpoint
 ```
 
 > **[ID]** — argument is optional; falls back to the active survey/project from config, then prompts interactively.
@@ -624,6 +680,58 @@ deutero surveys generate \
   --model-tier premium
 ```
 
+**`deutero surveys create`**
+Create a new survey directly with explicit field values. Does not use AI generation — all fields are set as provided.
+
+| Option | Description |
+|--------|-------------|
+| `--project-id` | Project ID to create the survey in (required) |
+| `-t, --survey-type` | Survey type: `sociology`, `user_experience`, `customer_development`, `polling` |
+| `--name` | Display name for the survey |
+| `--description` | Description of the survey |
+| `--research-questions` | Research questions |
+| `--objectives` | Research objectives |
+| `--target-population` | Target population |
+| `--anonymous` | Mark the survey as anonymous |
+| `--no-anonymous` | Mark the survey as non-anonymous |
+| `--model-tier` | Model tier: `open_weights`, `premium`, `frontier` |
+| `--redirect-url` | URL to redirect participants to after completing the survey |
+| `-l, --language` | Language for the survey |
+| `-o, --output <file>` | Write JSON response to a file |
+
+```bash
+deutero surveys create --project-id <PROJECT_ID>
+deutero surveys create --project-id <PROJECT_ID> --survey-type sociology --name "Trust Study"
+deutero surveys create --project-id <PROJECT_ID> --model-tier premium --anonymous -o study.json
+```
+
+**`deutero surveys update <SURVEY_ID>`**
+Update one or more properties of an existing survey. Only supplied fields are changed; omitted fields are left untouched. At least one option must be provided.
+
+| Option | Description |
+|--------|-------------|
+| `-t, --survey-type` | New survey type |
+| `--name` | New display name |
+| `--description` | New description |
+| `--research-questions` | New research questions |
+| `--objectives` | New research objectives |
+| `--target-population` | New target population |
+| `--anonymous` | Mark the survey as anonymous |
+| `--no-anonymous` | Mark the survey as non-anonymous |
+| `--model-tier` | New model tier (`open_weights`, `premium`, `frontier`) |
+| `--redirect-url` | New redirect URL |
+| `-l, --language` | New language |
+| `-o, --output <file>` | Write JSON response to a file |
+
+When both `--anonymous` and `--no-anonymous` are passed, `--anonymous` takes effect.
+
+```bash
+deutero surveys update <SURVEY_ID> --name "Renamed Study"
+deutero surveys update <SURVEY_ID> --model-tier frontier --language Spanish
+deutero surveys update <SURVEY_ID> --anonymous --redirect-url https://example.com/done
+deutero surveys update <SURVEY_ID> --description "Updated description" -o updated.json
+```
+
 **`deutero surveys participation [SURVEY_ID]`**
 Get participation statistics: total, completed, incomplete, completion rate, and quota fill rate.
 
@@ -684,6 +792,37 @@ Get the full question list for a survey.
 ```bash
 deutero surveys question-list
 deutero surveys question-list <SURVEY_ID>
+```
+
+**`deutero surveys interviews [SURVEY_ID]`**
+List interviews for a survey directly from the surveys group. Columns: ID, participant name, start time, end time, completed, simulated, termination reason.
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output <file>` | Write JSON response to a file |
+
+```bash
+deutero surveys interviews
+deutero surveys interviews <SURVEY_ID>
+```
+
+**`deutero surveys extract-from-guide <GUIDE_FILE>`**
+Extract structured study details and/or interview questions from a research guide text file.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--extract` | `both` | What to extract: `details`, `questions`, or `both` |
+| `-o, --output <file>` | — | Write JSON response to a file |
+
+Outputs:
+- **`details`** — study name, description, research questions, objectives, target population
+- **`questions`** — interview questions with type, interviewer guidance, and scale/option metadata
+
+```bash
+deutero surveys extract-from-guide guide.txt
+deutero surveys extract-from-guide guide.txt --extract details
+deutero surveys extract-from-guide guide.txt --extract questions
+deutero surveys extract-from-guide guide.txt -o extracted.json
 ```
 
 **`deutero surveys set-active`**
@@ -977,6 +1116,63 @@ Retrieve cross-case analysis results for a survey.
 ```bash
 deutero analysis results-survey
 deutero analysis results-survey <SURVEY_ID> -o cross_case.xml
+```
+
+---
+
+### `deutero webhooks`
+
+Manage webhook endpoints for your organization. Signing secrets are never exposed through the CLI — use the Deutero dashboard to create endpoints and retrieve secrets.
+
+**`deutero webhooks list`**
+List all webhook endpoints configured for the authenticated organization.
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output <file>` | Write JSON response to a file |
+
+Also prints the list of available event types.
+
+```bash
+deutero webhooks list
+deutero webhooks list -o webhooks.json
+```
+
+**`deutero webhooks update <ENDPOINT_ID>`**
+Update a webhook endpoint's label, delivery URL, enabled state, or subscribed events. Only supplied fields are changed.
+
+| Option | Description |
+|--------|-------------|
+| `--label <text>` | New label for the endpoint |
+| `--url <url>` | New delivery URL (must be `http` or `https`) |
+| `--enable` | Enable the endpoint |
+| `--disable` | Disable the endpoint |
+| `--event <type>` | Subscribed event type (repeatable — replaces the existing list) |
+| `-o, --output <file>` | Write JSON response to a file |
+
+At least one option must be provided. When both `--enable` and `--disable` are passed, `--enable` takes effect.
+
+```bash
+deutero webhooks update <ENDPOINT_ID> --label "Production Hook"
+deutero webhooks update <ENDPOINT_ID> --url https://hooks.example.com/deutero
+deutero webhooks update <ENDPOINT_ID> --enable
+deutero webhooks update <ENDPOINT_ID> --disable
+deutero webhooks update <ENDPOINT_ID> \
+  --event interview.completed \
+  --event survey.completed
+deutero webhooks update <ENDPOINT_ID> --label "Updated" --disable -o result.json
+```
+
+**`deutero webhooks delete <ENDPOINT_ID>`**
+Permanently delete a webhook endpoint and all its delivery logs. Prompts for confirmation unless `--yes` is supplied.
+
+| Option | Description |
+|--------|-------------|
+| `-y, --yes` | Skip the confirmation prompt |
+
+```bash
+deutero webhooks delete <ENDPOINT_ID>
+deutero webhooks delete <ENDPOINT_ID> --yes
 ```
 
 ---

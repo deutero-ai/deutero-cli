@@ -284,6 +284,246 @@ def surveys_question_list(ctx: click.Context, survey_id: Optional[str], output_f
         print_json(result, output_file)
 
 
+@surveys_group.command("extract-from-guide")
+@click.argument("guide_file", type=click.Path(exists=True, readable=True))
+@click.option(
+    "--extract",
+    type=click.Choice(["details", "questions", "both"]),
+    default="both",
+    show_default=True,
+    help="What to extract: 'details', 'questions', or 'both'.",
+)
+@click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
+@click.pass_context
+def surveys_extract_from_guide(ctx: click.Context, guide_file: str, extract: str, output_file: Optional[str]) -> None:
+    """Extract study details and/or questions from a research guide file.
+
+    GUIDE_FILE is the path to a text file containing the research guide content.
+    """
+    text = Path(guide_file).read_text(encoding="utf-8")
+    client: DeuteroClient = ctx.obj["client"]
+    try:
+        result = client.extract_from_guide({"text": text, "extract": extract})
+    except Exception as exc:
+        print_error(str(exc))
+        raise SystemExit(1)
+
+    if extract in ("details", "both"):
+        details = result.get("details") or {}
+        if details:
+            print_key_value(
+                {
+                    "Name": details.get("name", ""),
+                    "Description": details.get("description", ""),
+                    "Research questions": details.get("research_questions", ""),
+                    "Objectives": details.get("objectives", ""),
+                    "Target population": details.get("target_population", ""),
+                },
+                title="Extracted Study Details",
+            )
+
+    if extract in ("questions", "both"):
+        questions = result.get("questions") or []
+        print_success(f"Extracted {len(questions)} question(s)")
+        print_items_table(questions, title="Extracted Questions", columns=["question", "type", "interviewer_guidance"])
+
+    if output_file:
+        print_json(result, output_file)
+
+
+@surveys_group.command("interviews")
+@click.argument("survey_id", required=False, default=None)
+@click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
+@click.pass_context
+def surveys_interviews(ctx: click.Context, survey_id: Optional[str], output_file: Optional[str]) -> None:
+    if survey_id is None:
+        survey_id = get_active_survey_id()
+    if survey_id is None:
+        survey_id = click.prompt("Survey ID")
+
+    client: DeuteroClient = ctx.obj["client"]
+    try:
+        result = client.list_survey_interviews(survey_id)
+    except Exception as exc:
+        print_error(str(exc))
+        raise SystemExit(1)
+
+    interviews = result.get("interviews", [])
+    print_success(f"Found {len(interviews)} interview(s) for survey {survey_id}")
+    print_items_table(
+        interviews,
+        title="Interviews",
+        columns=["id", "participant_name", "start_time", "end_time", "completed", "simulated", "termination_reason"],
+    )
+    if output_file:
+        print_json(result, output_file)
+
+
+@surveys_group.command("create")
+@click.option("--project-id", required=True, help="Project ID to create the survey in.")
+@click.option("--survey-type", "-t", type=click.Choice(["sociology", "user_experience", "customer_development", "polling"]), default=None, help="Type of survey.")
+@click.option("--name", default=None, help="Display name for the survey.")
+@click.option("--description", default=None, help="Description of the survey.")
+@click.option("--research-questions", default=None, help="Research questions for the survey.")
+@click.option("--objectives", default=None, help="Research objectives.")
+@click.option("--target-population", default=None, help="Target population for the survey.")
+@click.option("--anonymous", "set_anonymous", is_flag=True, default=False, help="Mark the survey as anonymous.")
+@click.option("--no-anonymous", "set_not_anonymous", is_flag=True, default=False, help="Mark the survey as non-anonymous.")
+@click.option("--model-tier", type=click.Choice(["open_weights", "premium", "frontier"]), default=None, help="Model tier.")
+@click.option("--redirect-url", default=None, help="URL to redirect participants after completing the survey.")
+@click.option("--language", "-l", default=None, help="Language for the survey.")
+@click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
+@click.pass_context
+def surveys_create(
+    ctx: click.Context,
+    project_id: str,
+    survey_type: Optional[str],
+    name: Optional[str],
+    description: Optional[str],
+    research_questions: Optional[str],
+    objectives: Optional[str],
+    target_population: Optional[str],
+    set_anonymous: bool,
+    set_not_anonymous: bool,
+    model_tier: Optional[str],
+    redirect_url: Optional[str],
+    language: Optional[str],
+    output_file: Optional[str],
+) -> None:
+    """Create a new survey directly."""
+    payload: dict = {"project_id": project_id}
+    if survey_type is not None:
+        payload["survey_type"] = survey_type
+    if name is not None:
+        payload["name"] = name
+    if description is not None:
+        payload["description"] = description
+    if research_questions is not None:
+        payload["research_questions"] = research_questions
+    if objectives is not None:
+        payload["objectives"] = objectives
+    if target_population is not None:
+        payload["target_population"] = target_population
+    if set_anonymous or set_not_anonymous:
+        payload["anonymous"] = True if set_anonymous else False
+    if model_tier is not None:
+        payload["model_tier"] = model_tier
+    if redirect_url is not None:
+        payload["redirect_url"] = redirect_url
+    if language is not None:
+        payload["language"] = language
+
+    client: DeuteroClient = ctx.obj["client"]
+    try:
+        result = client.create_survey(payload)
+    except Exception as exc:
+        print_error(str(exc))
+        raise SystemExit(1)
+
+    print_success(f"Survey created — ID: {result.get('study_id')}")
+    print_key_value(
+        {
+            "Study ID": result.get("study_id"),
+            "Project ID": result.get("project_id"),
+            "Name": result.get("name"),
+            "Survey type": result.get("survey_type"),
+            "Model tier": result.get("model_tier"),
+            "Language": result.get("language"),
+            "Date created": result.get("date_created"),
+            "URL": result.get("url"),
+        },
+        title="Survey",
+    )
+    if output_file:
+        print_json(result, output_file)
+
+
+@surveys_group.command("update")
+@click.argument("survey_id")
+@click.option("--survey-type", "-t", type=click.Choice(["sociology", "user_experience", "customer_development", "polling"]), default=None, help="Type of survey.")
+@click.option("--name", default=None, help="Display name for the survey.")
+@click.option("--description", default=None, help="Description of the survey.")
+@click.option("--research-questions", default=None, help="Research questions for the survey.")
+@click.option("--objectives", default=None, help="Research objectives.")
+@click.option("--target-population", default=None, help="Target population for the survey.")
+@click.option("--anonymous", "set_anonymous", is_flag=True, default=False, help="Mark the survey as anonymous.")
+@click.option("--no-anonymous", "set_not_anonymous", is_flag=True, default=False, help="Mark the survey as non-anonymous.")
+@click.option("--model-tier", type=click.Choice(["open_weights", "premium", "frontier"]), default=None, help="Model tier.")
+@click.option("--redirect-url", default=None, help="URL to redirect participants after completing the survey.")
+@click.option("--language", "-l", default=None, help="Language for the survey.")
+@click.option("--output", "-o", "output_file", default=None, help="Write JSON response to a file.")
+@click.pass_context
+def surveys_update(
+    ctx: click.Context,
+    survey_id: str,
+    survey_type: Optional[str],
+    name: Optional[str],
+    description: Optional[str],
+    research_questions: Optional[str],
+    objectives: Optional[str],
+    target_population: Optional[str],
+    set_anonymous: bool,
+    set_not_anonymous: bool,
+    model_tier: Optional[str],
+    redirect_url: Optional[str],
+    language: Optional[str],
+    output_file: Optional[str],
+) -> None:
+    """Update properties of an existing survey.
+
+    SURVEY_ID defaults to the active survey (set via `deutero surveys set-active`).
+    """
+    payload: dict = {}
+    if survey_type is not None:
+        payload["survey_type"] = survey_type
+    if name is not None:
+        payload["name"] = name
+    if description is not None:
+        payload["description"] = description
+    if research_questions is not None:
+        payload["research_questions"] = research_questions
+    if objectives is not None:
+        payload["objectives"] = objectives
+    if target_population is not None:
+        payload["target_population"] = target_population
+    if set_anonymous or set_not_anonymous:
+        payload["anonymous"] = True if set_anonymous else False
+    if model_tier is not None:
+        payload["model_tier"] = model_tier
+    if redirect_url is not None:
+        payload["redirect_url"] = redirect_url
+    if language is not None:
+        payload["language"] = language
+
+    if not payload:
+        print_error("No fields to update. Provide at least one option.")
+        raise SystemExit(1)
+
+    client: DeuteroClient = ctx.obj["client"]
+    try:
+        result = client.update_survey(survey_id, payload)
+    except Exception as exc:
+        print_error(str(exc))
+        raise SystemExit(1)
+
+    print_success(f"Survey updated — ID: {result.get('study_id')}")
+    print_key_value(
+        {
+            "Study ID": result.get("study_id"),
+            "Project ID": result.get("project_id"),
+            "Name": result.get("name"),
+            "Survey type": result.get("survey_type"),
+            "Model tier": result.get("model_tier"),
+            "Language": result.get("language"),
+            "Date created": result.get("date_created"),
+            "URL": result.get("url"),
+        },
+        title="Survey",
+    )
+    if output_file:
+        print_json(result, output_file)
+
+
 @surveys_group.command("set-active")
 @click.option("--project-id", default=None, help="Project ID to list surveys from (defaults to active project).")
 @click.pass_context
