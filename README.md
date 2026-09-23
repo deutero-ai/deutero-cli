@@ -6,6 +6,29 @@ Deutero's own MCP server already exposes every endpoint, so mirroring the API is
 
 ## Install
 
+Prebuilt binaries cover macOS (Apple Silicon), Linux (amd64 and arm64), and Windows (amd64). Every push of a `vX.Y.Z` tag builds and publishes them via [GoReleaser](https://goreleaser.com).
+
+### Homebrew (macOS + Linux)
+
+```bash
+brew install deutero-ai/deutero-cli/deutero-pp-cli
+```
+
+This installs both `deutero-pp-cli` and `deutero-pp-mcp`. Upgrade with `brew upgrade deutero-pp-cli`.
+
+### Pre-built binary (all platforms, including Windows)
+
+Download the archive for your platform from the [Releases page](https://github.com/deutero-ai/deutero-cli/releases):
+
+| Platform | Archive |
+|---|---|
+| macOS (Apple Silicon) | `deutero-pp-cli_<version>_darwin_arm64.tar.gz` |
+| Linux (amd64) | `deutero-pp-cli_<version>_linux_amd64.tar.gz` |
+| Linux (arm64) | `deutero-pp-cli_<version>_linux_arm64.tar.gz` |
+| Windows (amd64) | `deutero-pp-cli_<version>_windows_amd64.zip` |
+
+Each archive contains both `deutero-pp-cli` and `deutero-pp-mcp`, plus a `checksums.txt` for verification. On macOS, clear the Gatekeeper quarantine after extracting: `xattr -d com.apple.quarantine <binary>`. On Unix, mark the binary executable: `chmod +x <binary>`. Then move it onto your `PATH`, e.g. `sudo mv deutero-pp-cli /usr/local/bin/`.
+
 ### Build from source (requires Go 1.26.6 or newer)
 
 ```bash
@@ -34,10 +57,6 @@ go install github.com/deutero-ai/deutero-cli/cmd/deutero-pp-mcp@latest
 ```
 
 This places the binaries in `$(go env GOPATH)/bin` (or `$HOME/go/bin` if `GOPATH` is unset) — make sure that directory is on your `PATH`.
-
-### Pre-built binary
-
-If this repo publishes GitHub Releases, download a pre-built binary for your platform from the [Releases page](https://github.com/deutero-ai/deutero-cli/releases). On macOS, clear the Gatekeeper quarantine: `xattr -d com.apple.quarantine <binary>`. On Unix, mark it executable: `chmod +x <binary>`.
 
 ## Use with Claude Desktop
 

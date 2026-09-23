@@ -11,14 +11,12 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w -X deutero-pp-cli/internal/cli.version={{ .Version }}
+      - -s -w -X github.com/deutero-ai/deutero-cli/internal/cli.version={{ .Version }}
     targets:
-      - darwin_amd64
       - darwin_arm64
       - linux_amd64
       - linux_arm64
       - windows_amd64
-      - windows_arm64
   - id: deutero-pp-mcp
     main: ./cmd/deutero-pp-mcp
     binary: deutero-pp-mcp
@@ -29,12 +27,10 @@ builds:
     ldflags:
       - -s -w -X main.version={{ .Version }}
     targets:
-      - darwin_amd64
       - darwin_arm64
       - linux_amd64
       - linux_arm64
       - windows_amd64
-      - windows_arm64
 archives:
   - formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
@@ -46,10 +42,17 @@ checksum:
 brews:
   - name: deutero-pp-cli
     repository:
-      owner: francisjervis
-      name: homebrew-tap
-    homepage: "https://github.com/francisjervis/deutero-pp-cli"
+      owner: deutero-ai
+      name: homebrew-deutero-cli
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    commit_author:
+      name: deutero-ai-bot
+      email: actions@github.com
+    homepage: "https://github.com/deutero-ai/deutero-cli"
     description: "Every Deutero endpoint, plus the flow-behaviour and fielding answers that take many API calls to assemble and that no single endpoint returns."
     install: |
       bin.install "deutero-pp-cli"
       bin.install "deutero-pp-mcp"
+    test: |
+      system "#{bin}/deutero-pp-cli", "version"
