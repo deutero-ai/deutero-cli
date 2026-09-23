@@ -288,6 +288,7 @@ func runBrowserLogin(cmd *cobra.Command, flags *rootFlags, cfg *config.Config, p
 			"token_type":    tok.TokenType,
 			"has_refresh":   tok.RefreshToken != "",
 			"config_path":   cfg.Path,
+			"token_storage": cfg.TokenStorage,
 		}
 		if !expiry.IsZero() {
 			out["expires_at"] = expiry.UTC().Format(time.RFC3339)
@@ -296,7 +297,12 @@ func runBrowserLogin(cmd *cobra.Command, flags *rootFlags, cfg *config.Config, p
 	}
 
 	fmt.Fprintln(w, green("Logged in."))
-	fmt.Fprintf(w, "  Credentials saved to %s\n", credentialSavePath(cfg))
+	if cfg.TokenStorage == "keyring" {
+		fmt.Fprintln(w, "  Access/refresh token saved to your OS keyring.")
+		fmt.Fprintf(w, "  Non-secret bookkeeping (client id, token expiry) saved to %s\n", credentialSavePath(cfg))
+	} else {
+		fmt.Fprintf(w, "  Credentials saved to %s\n", credentialSavePath(cfg))
+	}
 	if !expiry.IsZero() {
 		fmt.Fprintf(w, "  Access token expires %s\n", expiry.Format(time.RFC1123))
 	}

@@ -77,7 +77,12 @@ Build or install `deutero-pp-mcp` (see above), then add it to your Claude Deskto
 
 ## Authentication
 
-Set DEUTERO_API_KEY, or run 'deutero-pp-cli auth set-token'. The CLI sends it as an Authorization: Bearer header; the API accepts either an API key or a Stytch M2M access token there. (The API also accepts an X-API-Key header, but this CLI does not use it.) There is no browser or cookie login and no hosted setup URL — mint a key from the Deutero dashboard. 'auth status' shows what is configured.
+Two ways to authenticate:
+
+- **API key** — set `DEUTERO_API_KEY`, or run `deutero-pp-cli auth set-token`. The CLI sends it as an `Authorization: Bearer` header; the API also accepts a Stytch M2M access token there. (The API separately accepts an `X-API-Key` header, but this CLI does not use it.) Mint a key from the Deutero dashboard.
+- **Browser login** — `deutero-pp-cli auth login --client-id <connected-app-client-id>` runs a Stytch Connected Apps OAuth2 + PKCE flow: it opens your browser, captures the redirect on a loopback server, and exchanges the code for tokens. The client ID is a Connected App identifier from the Deutero dashboard — distinct from your API key or project ID. `--domain` (or `DEUTERO_OAUTH_DOMAIN`) points at a different login domain (e.g. a test project); endpoints are otherwise resolved automatically via OIDC discovery. Use `--no-launch` to print the URL instead of opening a browser (e.g. over SSH).
+
+Login tokens (access token, refresh token, and any confidential-client secret) are stored in your OS keyring (macOS Keychain, Linux Secret Service, Windows Credential Manager) when one is available, falling back automatically to a permission-locked `credentials.toml` otherwise — headless servers, containers, CI, and agent sandboxes commonly fall into the fallback case, and both paths work identically from the CLI's perspective. `auth status` shows what's configured, including which backend (`Token storage: keyring` or `file`) currently holds the tokens; `auth logout` clears both.
 
 ## Quick Start
 

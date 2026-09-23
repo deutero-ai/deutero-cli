@@ -82,6 +82,9 @@ func newAuthStatusCmd(flags *rootFlags) *cobra.Command {
 					"source":        cfg.AuthSource,
 					"config":        cfg.Path,
 				}
+				if cfg.TokenStorage != "" {
+					out["token_storage"] = cfg.TokenStorage
+				}
 				if credentialRefused {
 					out["credential_refused"] = true
 					out["credential_refusals"] = refusals
@@ -121,6 +124,9 @@ func newAuthStatusCmd(flags *rootFlags) *cobra.Command {
 
 			fmt.Fprintln(w, green("Credentials present (not verified)"))
 			fmt.Fprintf(w, "  Source: %s\n", cfg.AuthSource)
+			if cfg.TokenStorage != "" {
+				fmt.Fprintf(w, "  Token storage: %s\n", cfg.TokenStorage)
+			}
 			fmt.Fprintf(w, "  Config: %s\n", cfg.Path)
 			if _, line, expired, ok := jwtCredentialExpiry(jwtExpirySource(cfg)); ok {
 				fmt.Fprintf(w, "  Token expires: %s\n", line)

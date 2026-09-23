@@ -15,12 +15,20 @@ import (
 )
 
 type Config struct {
-	BaseURL            string                      `toml:"base_url"`
-	AuthHeaderVal      string                      `toml:"auth_header"`
-	Headers            map[string]string           `toml:"headers,omitempty"`
-	AuthSource         string                      `toml:"-"`
-	CredentialSource   string                      `toml:"-"`
-	AgentcookieManaged bool                        `toml:"-"`
+	BaseURL            string            `toml:"base_url"`
+	AuthHeaderVal      string            `toml:"auth_header"`
+	Headers            map[string]string `toml:"headers,omitempty"`
+	AuthSource         string            `toml:"-"`
+	CredentialSource   string            `toml:"-"`
+	AgentcookieManaged bool              `toml:"-"`
+	// TokenStorage reports where the OAuth access/refresh token and client
+	// secret actually live: "keyring" when the OS keyring accepted them at
+	// login time (macOS Keychain, Linux Secret Service, Windows Credential
+	// Manager), "file" when they're in credentials.toml — either because no
+	// keyring backend was available (headless/CI/sandbox) or because this
+	// profile predates the keyring integration. Never persisted; recomputed
+	// on every Load/SaveTokens.
+	TokenStorage       string                      `toml:"-"`
 	CredentialRefusals []cliutil.CredentialRefusal `toml:"-"`
 	// configOwner records which on-disk file parseConfigData populated this
 	// config from ("config-kind path" or "legacy config path") so the
@@ -154,6 +162,34 @@ func Load(configPath string) (*Config, error) {
 				if cfg.hasCredentialFields() {
 					cfg.AuthSource = "config"
 					cfg.CredentialSource = "credentials file"
+				}
+			}
+
+			// Overlay OS-keyring-held secrets on top of whatever the file
+			// supplied. SaveTokens blanks access_token/refresh_token/
+			// client_secret in credentials.toml when the keyring accepted
+			// them, so this fills the gap; for profiles that never used the
+			// keyring, LoadKeyringTokens finds nothing and this is a no-op.
+			var credsFilePath string
+			if explicitConfigFile {
+				credsFilePath, _ = cliutil.CredentialsFilePathForConfig(path)
+			} else {
+				credsFilePath, _ = cliutil.CredentialsFilePath()
+			}
+			if tok, ok := cliutil.LoadKeyringTokens(credsFilePath); ok {
+				if cfg.AccessToken == "" && tok.AccessToken != "" {
+					cfg.AccessToken = tok.AccessToken
+					cfg.TokenStorage = "keyring"
+					if cfg.AuthSource == "" || cfg.AuthSource == "config" {
+						cfg.AuthSource = "config"
+						cfg.CredentialSource = "keyring"
+					}
+				}
+				if cfg.RefreshToken == "" && tok.RefreshToken != "" {
+					cfg.RefreshToken = tok.RefreshToken
+				}
+				if cfg.ClientSecret == "" && tok.ClientSecret != "" {
+					cfg.ClientSecret = tok.ClientSecret
 				}
 			}
 		}
@@ -458,10 +494,22 @@ func (c *Config) saveCredentialsFirst() error {
 		return nil
 	}
 	persisted := c.configForSave()
+	if c.TokenStorage == "keyring" {
+		// The OS keyring already holds these; keep credentials.toml down to
+		// client_id + token_expiry (non-secret bookkeeping) instead of a
+		// second plaintext copy.
+		persisted.AccessToken = ""
+		persisted.RefreshToken = ""
+		persisted.ClientSecret = ""
+	}
 	if err := cliutil.SaveCredentials(persisted.credentials()); err != nil {
 		return err
 	}
-	c.CredentialSource = "credentials file"
+	if c.TokenStorage == "keyring" {
+		c.CredentialSource = "keyring"
+	} else {
+		c.CredentialSource = "credentials file"
+	}
 	return nil
 }
 
@@ -597,6 +645,26 @@ func (c *Config) SaveTokens(clientID, clientSecret, accessToken, refreshToken st
 	c.updateFileConfigField("AccessToken")
 	c.updateFileConfigField("RefreshToken")
 	c.updateFileConfigField("TokenExpiry")
+
+	// Prefer the OS keyring for the access/refresh token and client secret
+	// (Stytch's Connected Apps CLI guide stores tokens this way). Agentcookie
+	// manages its own external secret store, so leave that path untouched.
+	// Any other environment without a usable keyring backend — headless
+	// Linux with no Secret Service session, CI, containers, agent sandboxes —
+	// falls back to the existing permission-verified credentials.toml.
+	c.TokenStorage = "file"
+	if !c.AgentcookieManagedByExternalStore() {
+		if credsPath, err := cliutil.CredentialsFilePath(); err == nil {
+			if cliutil.SaveKeyringTokens(credsPath, cliutil.KeyringTokens{
+				AccessToken:  accessToken,
+				RefreshToken: refreshToken,
+				ClientSecret: clientSecret,
+			}) {
+				c.TokenStorage = "keyring"
+			}
+		}
+	}
+
 	return c.saveCredentialsThenConfig()
 }
 
@@ -628,6 +696,12 @@ func (c *Config) ClearTokens() error {
 	c.DeuteroApiKey = ""
 	delete(c.envOverrides, "DeuteroApiKey")
 	c.updateFileConfigField("DeuteroApiKey")
+	c.TokenStorage = ""
+	if !c.AgentcookieManagedByExternalStore() {
+		if credsPath, err := cliutil.CredentialsFilePath(); err == nil {
+			cliutil.DeleteKeyringTokens(credsPath)
+		}
+	}
 	if c.AgentcookieManagedByExternalStore() {
 		c.markAgentcookieManaged()
 		// save() persists the full config (credential fields included) for
