@@ -1,0 +1,39 @@
+{
+  "manifest_version": "0.3",
+  "name": "deutero-pp-mcp",
+  "display_name": "Deutero",
+  "version": "1.0.0",
+  "description": "Every Deutero endpoint, plus the flow-behavior and fielding answers that only exist once your research corpus is sitting in a local database.",
+  "author": {
+    "name": "CLI Printing Press"
+  },
+  "license": "Apache-2.0",
+  "server": {
+    "type": "binary",
+    "entry_point": "bin/deutero-pp-mcp",
+    "mcp_config": {
+      "command": "${__dirname}/bin/deutero-pp-mcp",
+      "args": [],
+      "env": {
+        "DEUTERO_API_KEY": "${user_config.deutero_api_key}"
+      }
+    }
+  },
+  "user_config": {
+    "deutero_api_key": {
+      "type": "string",
+      "title": "DEUTERO_API_KEY",
+      "description": "Sets DEUTERO_API_KEY for the Deutero MCP server.",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": [
+      "darwin",
+      "linux",
+      "win32"
+    ]
+  }
+}

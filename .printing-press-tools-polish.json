@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-09-22T16:58:19.11934Z",
+  "cli_dir": "\u003ccli-dir\u003e",
+  "findings": [
+    {
+      "kind": "thin-short",
+      "command": "list",
+      "file": "platform_client.go",
+      "line": 517,
+      "evidence": "List client profiles",
+      "status": "accepted",
+      "note": "DO-NOT-EDIT generated file (framework 'profile list'); needs generator-template fix to name what a client profile holds"
+    },
+    {
+      "kind": "thin-short",
+      "command": "list",
+      "file": "teach.go",
+      "line": 868,
+      "evidence": "List recorded learnings",
+      "status": "accepted",
+      "note": "DO-NOT-EDIT generated file (learn-loop 'learnings list'); needs generator-template fix to mention filters and output fields"
+    }
+  ]
+}

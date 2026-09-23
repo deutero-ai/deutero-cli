@@ -1,0 +1,150 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-09-22T21:49:46.081917Z",
+  "printing_press_version": "4.32.4",
+  "api_name": "deutero",
+  "display_name": "Deutero",
+  "cli_name": "deutero-pp-cli",
+  "creator": {
+    "handle": "francisjervis",
+    "name": "francis"
+  },
+  "owner": "francisjervis",
+  "printer": "francisjervis",
+  "printer_name": "francis",
+  "spec_path": "deutero-study-api.json",
+  "spec_format": "openapi3",
+  "spec_source": "official",
+  "spec_checksum": "sha256:2ec73af385698c9ecc404eeea29e43ee456c80ddb7821ebcb2280a5b7e82e00e",
+  "run_id": "20260921-221354-646207bd",
+  "category": "ai",
+  "description": "Every Deutero endpoint, plus the flow-behaviour and fielding answers that take many API calls to assemble and that no single endpoint returns.",
+  "mcp_binary": "deutero-pp-mcp",
+  "mcp_tool_count": 78,
+  "mcp_ready": "full",
+  "api_version": "1.0.0",
+  "auth_type": "bearer_token",
+  "auth_preference": "HTTPBearer",
+  "auth_env_vars": [
+    "DEUTERO_API_KEY"
+  ],
+  "novel_features": [
+    {
+      "name": "Flow behavior coverage",
+      "command": "flow coverage",
+      "description": "Shows how an Interview Flow actually routed across a whole study: every branch arm's share, how often the otherwise path fired, classifier errors, which steps interviews reached, and which declared variables are being captured. Flow-mode studies only: a linear study has no branch or flow records and correctly returns nothing."
+    },
+    {
+      "name": "Payout reconciliation",
+      "command": "reconcile",
+      "description": "Finds participants who completed a study but were never successfully notified, by joining completed interviews against the webhook deliveries that were supposed to tell your system about them."
+    },
+    {
+      "name": "Study definition diff",
+      "command": "study diff",
+      "description": "Compares two complete study definitions field by field — details, welcome and translations, screening, characteristics, questions or flow, recruitment — or compares a live study against a saved bundle file."
+    },
+    {
+      "name": "Answer rectangle",
+      "command": "answers matrix",
+      "description": "Turns a study into a real table: one row per interview, one column per question or captured variable, with the external participant id as the join key and optional participant characteristic columns via --with-characteristics. Works for both linear and flow studies."
+    },
+    {
+      "name": "Flow effects audit",
+      "command": "flow effects",
+      "description": "Aggregates what a flow's side steps actually did across a study: failed data fetches with status codes, undelivered signals, and dry-run signals from simulations kept separate from real ones. Flow-mode studies only: a linear study has no branch or flow records and correctly returns nothing."
+    },
+    {
+      "name": "Study bundle export and apply",
+      "command": "study bundle",
+      "description": "Snapshots an entire study definition — details, welcome and translations, screening, characteristics, questions or flow, recruitment — into one file. The write half is a separate command, 'study apply --file \u003cf\u003e', which plans by default and writes only with --confirm, and which replays whole-resource sections only (question lists replay via 'studies questions')."
+    },
+    {
+      "name": "Rehearsal vs reality diff",
+      "command": "rehearse diff",
+      "description": "Compares the simulated persona cohort against real participants on the same measures: step reach, branch arm mix, variable capture rate, message count and duration. Needs both cohorts; branch and variable measures are flow-mode only."
+    },
+    {
+      "name": "Fielding burn rate",
+      "command": "fielding",
+      "description": "Completions per day against the response quota, projecting the date the quota fills."
+    },
+    {
+      "name": "Cross-tab",
+      "command": "crosstab",
+      "description": "Segments any scale or options question by any participant characteristic, with per-cell counts and per-segment completion rate."
+    },
+    {
+      "name": "Saturation curve",
+      "command": "saturation",
+      "description": "Counts how many genuinely new terms each successive interview contributes, and marks the point where the curve flattens. A mechanical word-level proxy for new content, not a judgement about meaning."
+    }
+  ],
+  "novel_features_built": [
+    {
+      "name": "Flow behavior coverage",
+      "command": "flow coverage",
+      "description": "Shows how an Interview Flow actually routed across a whole study: every branch arm's share, how often the otherwise path fired, classifier errors, which steps interviews reached, and which declared variables are being captured. Flow-mode studies only: a linear study has no branch or flow records and correctly returns nothing."
+    },
+    {
+      "name": "Payout reconciliation",
+      "command": "reconcile",
+      "description": "Finds participants who completed a study but were never successfully notified, by joining completed interviews against the webhook deliveries that were supposed to tell your system about them."
+    },
+    {
+      "name": "Study definition diff",
+      "command": "study diff",
+      "description": "Compares two complete study definitions field by field — details, welcome and translations, screening, characteristics, questions or flow, recruitment — or compares a live study against a saved bundle file."
+    },
+    {
+      "name": "Answer rectangle",
+      "command": "answers matrix",
+      "description": "Turns a study into a real table: one row per interview, one column per question or captured variable, with the external participant id as the join key and optional participant characteristic columns via --with-characteristics. Works for both linear and flow studies."
+    },
+    {
+      "name": "Flow effects audit",
+      "command": "flow effects",
+      "description": "Aggregates what a flow's side steps actually did across a study: failed data fetches with status codes, undelivered signals, and dry-run signals from simulations kept separate from real ones. Flow-mode studies only: a linear study has no branch or flow records and correctly returns nothing."
+    },
+    {
+      "name": "Study bundle export and apply",
+      "command": "study bundle",
+      "description": "Snapshots an entire study definition — details, welcome and translations, screening, characteristics, questions or flow, recruitment — into one file. The write half is a separate command, 'study apply --file \u003cf\u003e', which plans by default and writes only with --confirm, and which replays whole-resource sections only (question lists replay via 'studies questions')."
+    },
+    {
+      "name": "Rehearsal vs reality diff",
+      "command": "rehearse diff",
+      "description": "Compares the simulated persona cohort against real participants on the same measures: step reach, branch arm mix, variable capture rate, message count and duration. Needs both cohorts; branch and variable measures are flow-mode only."
+    },
+    {
+      "name": "Fielding burn rate",
+      "command": "fielding",
+      "description": "Completions per day against the response quota, projecting the date the quota fills."
+    },
+    {
+      "name": "Cross-tab",
+      "command": "crosstab",
+      "description": "Segments any scale or options question by any participant characteristic, with per-cell counts and per-segment completion rate."
+    },
+    {
+      "name": "Saturation curve",
+      "command": "saturation",
+      "description": "Counts how many genuinely new terms each successive interview contributes, and marks the point where the curve flattens. A mechanical word-level proxy for new content, not a judgement about meaning."
+    }
+  ],
+  "verify": {
+    "mode": "live",
+    "pass_rate": 100,
+    "passed": 117,
+    "total": 117,
+    "data_pipeline": true,
+    "verdict": "PASS"
+  },
+  "scorecard": {
+    "steinberger": {
+      "percentage": 96,
+      "grade": "A",
+      "total": 96
+    }
+  }
+}

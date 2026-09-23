@@ -1,0 +1,12 @@
+{
+  "schema_version": 2,
+  "id": "stytch-connected-apps-login",
+  "applied_at": "2026-07-20",
+  "base_run_id": "20260719-230500",
+  "base_printing_press_version": "4.29.0",
+  "summary": "The `auth login` command performs a browser-redirect OAuth2 + PKCE login (Stytch Connected Apps) — OIDC endpoint discovery, a loopback callback server, state (CSRF) check, standard form-encoded code-for-token exchange, and persistence via cfg.SaveTokens — and must survive regen.",
+  "reason": "Deutero authenticates end users through a Stytch Connected App, not just a static API key. Without an interactive browser login the CLI can only be used with a manually pasted token, which no ordinary user can obtain. The config layer already carries the OAuth2 token fields (AccessToken/RefreshToken/ClientID/ClientSecret/expiry) and AuthSource=\"oauth2\", but nothing minted them; this command is the missing front door.",
+  "files": ["internal/cli/auth_login.go", "internal/cli/auth.go"],
+  "validated_outcome": "Against the real Deutero login domain, discovery resolves authorize=https://dashboard.deutero.ai/connect/authorize and token=https://<domain>/v1/oauth2/token. End-to-end against a mock token endpoint: form-encoded exchange (client_id, code, code_verifier, redirect_uri, optional client_secret) sent, tokens saved to the credentials file, `auth status` reports authenticated=true. A mismatched state on the callback is rejected with exit code 4 (authErr) before any exchange.",
+  "notes": "Endpoints resolve at runtime from {domain}/.well-known/openid-configuration (--domain/DEUTERO_OAUTH_DOMAIN, default https://login.deutero.ai; test project is https://login-test.deutero.ai). All values are flag/env overridable: --client-id/DEUTERO_OAUTH_CLIENT_ID (required), --client-secret/DEUTERO_OAUTH_CLIENT_SECRET (optional; discovery advertises `none`, so PKCE alone works), --authorize-url, --token-url, --scope (default 'openid email offline_access full_access'). The Connected App client_id is NOT the project ID / public token / secret — it is a separate value from the Stytch dashboard and must be supplied. The command auto-binds as an MCP tool via the cobratree walk. Tokens persist through config.SaveTokens (credentials file), so `auth logout` already clears them."
+}

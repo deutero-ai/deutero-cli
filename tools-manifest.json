@@ -1,0 +1,2282 @@
+{
+  "api_name": "deutero",
+  "base_url": "https://dashboard.deutero.ai/study-api",
+  "description": "Every Deutero endpoint, plus the flow-behaviour and fielding answers that take many API calls to assemble and that no single endpoint returns.",
+  "mcp_ready": "full",
+  "http_transport": "standard",
+  "mcp": {
+    "endpoint_tools": "hidden",
+    "orchestration": "code"
+  },
+  "auth": {
+    "type": "bearer_token",
+    "header": "Authorization",
+    "env_vars": [
+      "DEUTERO_API_KEY"
+    ],
+    "env_var_specs": [
+      {
+        "name": "DEUTERO_API_KEY",
+        "kind": "per_call",
+        "required": true,
+        "sensitive": true,
+        "inferred": true
+      }
+    ]
+  },
+  "required_headers": [],
+  "tools": [
+    {
+      "name": "credits_get-balance",
+      "description": "Get credit balance. Returns the CreditBalanceOut.",
+      "method": "GET",
+      "path": "/api/v1/credits/balance",
+      "params": []
+    },
+    {
+      "name": "embed_create",
+      "description": "Create a publishable embed key for the caller's organization, optionally pinned to one study. **The response includes ``publishable_key`` and ``signing_secret`` — this is the only time they are returned. Store them immediately.**. Required: allowed_origins. Optional: metadata_max_bytes, study_id. Returns the new ResponseCreateEmbedKeyApiV1EmbedKeysPost.",
+      "method": "POST",
+      "path": "/api/v1/embed/keys",
+      "params": [
+        {
+          "name": "allowed_origins",
+          "type": "string_csv_array",
+          "location": "body",
+          "description": "Exact origins (scheme + host + port) the widget may load on. The '*' wildcard is not allowed.",
+          "required": true
+        },
+        {
+          "name": "metadata_max_bytes",
+          "type": "string",
+          "location": "body",
+          "description": "Maximum total serialized size, in bytes, of the metadata a bootstrap may carry (page-supplied or signed-token)"
+        },
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "body",
+          "description": "Pin the key to one study (null = any study in the organization)"
+        }
+      ]
+    },
+    {
+      "name": "embed_list-keys",
+      "description": "Every embed key owned by the caller's organization (secrets omitted). Returns array of EmbedListKeysItem.",
+      "method": "GET",
+      "path": "/api/v1/embed/keys",
+      "params": []
+    },
+    {
+      "name": "embed_update",
+      "description": "Change allowed origins, revoke/reactivate (``status``), or adjust the metadata size limit. Required: key_id. Optional: allowed_origins, metadata_max_bytes, status. Returns the updated ResponseUpdateEmbedKeyApiV1EmbedKeysKeyIdPatch.",
+      "method": "PATCH",
+      "path": "/api/v1/embed/keys/{key_id}",
+      "params": [
+        {
+          "name": "key_id",
+          "type": "string",
+          "location": "path",
+          "description": "Key id",
+          "required": true
+        },
+        {
+          "name": "allowed_origins",
+          "type": "string",
+          "location": "body",
+          "description": "Allowed origins"
+        },
+        {
+          "name": "metadata_max_bytes",
+          "type": "string",
+          "location": "body",
+          "description": "Metadata max bytes"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "location": "body",
+          "description": "'active' or 'revoked'"
+        }
+      ]
+    },
+    {
+      "name": "graph_describe-nodes",
+      "description": "The configuration schema for every step type an interview flow can contain, generated from the same registry the validator enforces — so it cannot drift from what `check_graph` will accept. Read this before authoring a flow. It returns, per step type: what the step does, whether it sits on the interview path or attaches to a question (and with `after` or `before`), and every config field with its type, whether it is required, and what it means. Plus the valid question types, condition operators, decision modes, merge modes, the built-in variables available to piped text, and the structural rules the validator applies. Returns the ResponseDescribeGraphNodesApiV1GraphNodeTypesGet.",
+      "method": "GET",
+      "path": "/api/v1/graph/node-types",
+      "params": []
+    },
+    {
+      "name": "health_health",
+      "description": "Liveness check. Returns the ResponseHealthHealthGet.",
+      "method": "GET",
+      "path": "/health",
+      "params": []
+    },
+    {
+      "name": "interviews_get",
+      "description": "One interview with its screening answers, participant characteristics, embed-widget metadata (with per-key provenance), message count, and the answers it captured into Interview Flow variables. ``web_source``, ``external_participant_id`` and ``referrer`` say where the participant arrived from: the first two are set by building the entry link with ``?source=`` and ``?participant_id=`` (or, for an embedded study, a ``participant_id`` key in the widget's metadata bag). All three are participant-supplied text — labels to join on, never proof of who answered. Required: interview_id. Returns the InterviewDetailOut.",
+      "method": "GET",
+      "path": "/api/v1/interviews/{interview_id}",
+      "params": [
+        {
+          "name": "interview_id",
+          "type": "string",
+          "location": "path",
+          "description": "Interview ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "interviews_fetches-and-signals_get-interview",
+      "description": "What an Interview Flow's side steps did outside the conversation: every 'Bring in data' (context_fetch) request with the response it returned or the error it hit, and every 'Send a signal' (webhook) delivery with its status. This is the record to read when a piped-in value looks wrong or a customer system did not receive a signal. Empty for linear (non-graph) studies. Signals from a simulated interview are marked ``dry_run`` unless that run opted into real delivery. Required: interview_id. Returns the InterviewEffectsOut.",
+      "method": "GET",
+      "path": "/api/v1/interviews/{interview_id}/fetches-and-signals",
+      "params": [
+        {
+          "name": "interview_id",
+          "type": "string",
+          "location": "path",
+          "description": "Interview ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "interviews_transcript_get",
+      "description": "All messages in chronological order. ``type`` distinguishes interviewer questions from participant answers; internal tool/thinking payloads are not included, including the canonical form of a structured answer (the participant's own words are kept). ``variables`` carries the answers the interview captured into Interview Flow variables — the structured values behind the conversation, empty for a study that captures nothing. ``decisions`` says how each Branch was decided: the label the classifier emitted, whether it matched a path or fell through to the 'otherwise' one, and the step chosen. Graph step ids are the ones you authored, so they can be passed back to search or clustering. Required: interview_id. Returns the TranscriptOut.",
+      "method": "GET",
+      "path": "/api/v1/interviews/{interview_id}/transcript",
+      "params": [
+        {
+          "name": "interview_id",
+          "type": "string",
+          "location": "path",
+          "description": "Interview ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "projects_create",
+      "description": "Create a new project owned by the caller's organization. Required: name. Optional: description. Returns the new ProjectOut.",
+      "method": "POST",
+      "path": "/api/v1/projects",
+      "params": [
+        {
+          "name": "description",
+          "type": "string",
+          "location": "body",
+          "description": "Project description"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "location": "body",
+          "description": "Project name",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "projects_get",
+      "description": "Get a project. Required: project_id. Returns the ProjectOut.",
+      "method": "GET",
+      "path": "/api/v1/projects/{project_id}",
+      "params": [
+        {
+          "name": "project_id",
+          "type": "string",
+          "location": "path",
+          "description": "Project ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "projects_list",
+      "description": "List every project in the caller's organization. Returns array of ProjectOut.",
+      "method": "GET",
+      "path": "/api/v1/projects",
+      "params": []
+    },
+    {
+      "name": "projects_update",
+      "description": "Update a project's name and/or description. Omitted fields are untouched. Required: project_id. Optional: description, name. Returns the updated ProjectOut.",
+      "method": "PATCH",
+      "path": "/api/v1/projects/{project_id}",
+      "params": [
+        {
+          "name": "project_id",
+          "type": "string",
+          "location": "path",
+          "description": "Project ID",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "location": "body",
+          "description": "Description"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "location": "body",
+          "description": "Name"
+        }
+      ]
+    },
+    {
+      "name": "projects_studies_list",
+      "description": "List studies in a project. Required: project_id. Returns array of StudySummary.",
+      "method": "GET",
+      "path": "/api/v1/projects/{project_id}/studies",
+      "params": [
+        {
+          "name": "project_id",
+          "type": "string",
+          "location": "path",
+          "description": "Project ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "simulations_delete",
+      "description": "Removes the run's bookkeeping row. The interview it produced is kept — delete that separately if you want the transcript gone. A run still in flight cannot be deleted. Required: simulation_id. Destructive.",
+      "method": "DELETE",
+      "path": "/api/v1/simulations/{simulation_id}",
+      "params": [
+        {
+          "name": "simulation_id",
+          "type": "string",
+          "location": "path",
+          "description": "Simulation run ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "simulations_get",
+      "description": "One run's current state. Poll this after starting a run: ``running`` until the interview finishes, then ``completed`` (with ``credits_used``) or ``failed`` (reservation released, nothing charged — ``error`` says why). Required: simulation_id. Returns the SimulationOut.",
+      "method": "GET",
+      "path": "/api/v1/simulations/{simulation_id}",
+      "params": [
+        {
+          "name": "simulation_id",
+          "type": "string",
+          "location": "path",
+          "description": "Simulation run ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_create",
+      "description": "Create a new study inside a project. The study starts with an empty main question list; configure the rest of the lifecycle with the Welcome, Screening, Characteristics, Questions, Recruitment, and Embed endpoints. Interview mode is **linear** (ordered question list). Required: name, project_id. Optional: anonymous (default: false), benefits, description (plus 14 more). Returns the new StudyOut.",
+      "method": "POST",
+      "path": "/api/v1/studies",
+      "params": [
+        {
+          "name": "anonymous",
+          "type": "bool",
+          "location": "body",
+          "description": "Skip collecting participant first names"
+        },
+        {
+          "name": "benefits",
+          "type": "string",
+          "location": "body",
+          "description": "Participation benefits (used in consent)"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "location": "body",
+          "description": "Study description"
+        },
+        {
+          "name": "institution",
+          "type": "string",
+          "location": "body",
+          "description": "Institutional affiliation"
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "location": "body",
+          "description": "Primary interview language"
+        },
+        {
+          "name": "max_responses",
+          "type": "string",
+          "location": "body",
+          "description": "Response quota (null = unlimited)"
+        },
+        {
+          "name": "methodology",
+          "type": "string",
+          "location": "body",
+          "description": "Methodology notes"
+        },
+        {
+          "name": "model_tier",
+          "type": "string",
+          "location": "body",
+          "description": "Interview model tier: open_weights, standard, or premium ('frontier' is accepted as a deprecated alias for 'premium'). Only standard and premium can read image-upload answers."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "location": "body",
+          "description": "Study name shown to participants",
+          "required": true
+        },
+        {
+          "name": "objectives",
+          "type": "string",
+          "location": "body",
+          "description": "Research objectives"
+        },
+        {
+          "name": "project_id",
+          "type": "string",
+          "location": "body",
+          "description": "Project to create the study in. The caller must belong to the organization that owns this project.",
+          "required": true
+        },
+        {
+          "name": "redirect_url",
+          "type": "string",
+          "location": "body",
+          "description": "URL participants are sent to after completing. May contain {{external_participant_id}}, replaced with the id this interview arrived with (from the link's ?participant_id= or the embed metadata bag) — how a panel or CRM gets its own id handed back"
+        },
+        {
+          "name": "research_question",
+          "type": "string",
+          "location": "body",
+          "description": "The research question(s)"
+        },
+        {
+          "name": "risks",
+          "type": "string",
+          "location": "body",
+          "description": "Participation risks (used in consent)"
+        },
+        {
+          "name": "support_contact",
+          "type": "string",
+          "location": "body",
+          "description": "Researcher/support contact"
+        },
+        {
+          "name": "survey_type",
+          "type": "string",
+          "location": "body",
+          "description": "Study methodology. One of: sociology, user_experience, customer_development, polling"
+        },
+        {
+          "name": "target_population",
+          "type": "string",
+          "location": "body",
+          "description": "Target participant population"
+        },
+        {
+          "name": "video_enabled",
+          "type": "bool",
+          "location": "body",
+          "description": "Offer a video-call interview link alongside text chat"
+        },
+        {
+          "name": "voice_enabled",
+          "type": "bool",
+          "location": "body",
+          "description": "Offer a voice-call interview link alongside text chat"
+        }
+      ]
+    },
+    {
+      "name": "studies_get-study",
+      "description": "Full study configuration, including per-lifecycle-stage status (welcome configured, screening/characteristics enabled and question counts, main question count) and participation links. Required: study_id. Returns the StudyOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_update",
+      "description": "Partial update of study properties. Only fields present in the request body are changed. A ``redirect_url`` is normalized on the way in: a single-braced ``{external_participant_id}`` is corrected to the ``{{external_participant_id}}`` the interviewer substitutes, and anything else in double braces is kept but named in ``redirect_url_warning``. Required: study_id. Optional: anonymous, benefits, description (plus 15 more). Returns the updated StudyOut.",
+      "method": "PATCH",
+      "path": "/api/v1/studies/{study_id}",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "anonymous",
+          "type": "string",
+          "location": "body",
+          "description": "Anonymous"
+        },
+        {
+          "name": "benefits",
+          "type": "string",
+          "location": "body",
+          "description": "Benefits"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "location": "body",
+          "description": "Description"
+        },
+        {
+          "name": "institution",
+          "type": "string",
+          "location": "body",
+          "description": "Institution"
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "location": "body",
+          "description": "Language"
+        },
+        {
+          "name": "max_responses",
+          "type": "string",
+          "location": "body",
+          "description": "Max responses"
+        },
+        {
+          "name": "methodology",
+          "type": "string",
+          "location": "body",
+          "description": "Methodology"
+        },
+        {
+          "name": "model_tier",
+          "type": "string",
+          "location": "body",
+          "description": "Model tier"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "location": "body",
+          "description": "Name"
+        },
+        {
+          "name": "objectives",
+          "type": "string",
+          "location": "body",
+          "description": "Objectives"
+        },
+        {
+          "name": "redirect_url",
+          "type": "string",
+          "location": "body",
+          "description": "URL participants are sent to after completing. May contain {{external_participant_id}}, replaced with the id this interview arrived with — the only placeholder understood"
+        },
+        {
+          "name": "research_question",
+          "type": "string",
+          "location": "body",
+          "description": "Research question"
+        },
+        {
+          "name": "risks",
+          "type": "string",
+          "location": "body",
+          "description": "Risks"
+        },
+        {
+          "name": "support_contact",
+          "type": "string",
+          "location": "body",
+          "description": "Support contact"
+        },
+        {
+          "name": "survey_type",
+          "type": "string",
+          "location": "body",
+          "description": "Survey type"
+        },
+        {
+          "name": "target_population",
+          "type": "string",
+          "location": "body",
+          "description": "Target population"
+        },
+        {
+          "name": "video_enabled",
+          "type": "string",
+          "location": "body",
+          "description": "Video enabled"
+        },
+        {
+          "name": "voice_enabled",
+          "type": "string",
+          "location": "body",
+          "description": "Voice enabled"
+        }
+      ]
+    },
+    {
+      "name": "studies_analysis_get-latest-clustering",
+      "description": "Returns the study's most recent saved clustering run, ready to chart: per-cluster point coordinates and centroids. ``exists`` is false when the study has not been clustered yet. Required: study_id.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/analysis/clustering/latest",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_analysis_get-optimal-clusters",
+      "description": "Suggests how many clusters to use for a question. Applies the elbow method to participants' response vectors and returns the suggested count as ``optimal_k``, plus the underlying inertia-vs-k curve (``k_values`` and ``inertias``) so you can plot the elbow yourself. Use the result as the ``n_clusters`` value for ``POST .../cluster``. Required: study_id. Optional: question_id, question_number.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/analysis/optimal-clusters",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "question_id",
+          "type": "string",
+          "location": "body",
+          "description": "Question id"
+        },
+        {
+          "name": "question_number",
+          "type": "string",
+          "location": "body",
+          "description": "Question number"
+        }
+      ]
+    },
+    {
+      "name": "studies_analysis_get-options-responses",
+      "description": "Response count per option. Single-select answers match one option label (translated answers are mapped back to the original option); multi-select answers are JSON arrays whose every selected label is counted. Declined answers are reported as a 'Prefer not to answer' entry when present. Required: study_id, question_id. Returns array of OptionCount.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/analysis/responses/options",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "question_id",
+          "type": "string",
+          "location": "query",
+          "description": "Question ID (or graph node ID)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_analysis_get-scale-responses",
+      "description": "Response count per scale value. Follow-up turns are excluded; out-of-range and non-numeric replies are skipped. Required: study_id, question_id. Returns the ScaleResponsesOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/analysis/responses/scale",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "question_id",
+          "type": "string",
+          "location": "query",
+          "description": "Question ID (or graph node ID)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_analysis_list-analyzable-questions",
+      "description": "Questions of the study that fit the requested analysis ``category``: * ``text`` — free-text questions (clusterable; includes distinct respondent counts) * ``scale`` — scale questions with their scale config * ``options`` — single-select and multi-select questions with canonical answer counts For graph-mode studies, ``id`` carries the graph node ID. Required: study_id, category. Returns array of AnalyzableQuestion.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/analysis/questions",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "category",
+          "type": "string",
+          "location": "query",
+          "description": "Category",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_analysis_run-clustering",
+      "description": "Group participants' free-text answers to one question into themes. Each participant's answers are condensed into a single vector, k-means sorts those vectors into ``n_clusters`` groups, and every group is given a short thematic label and summary. Labeling uses the platform's analysis model and is best-effort: if it fails the groups are still returned, just with generic labels. No setup is needed — the vectors are computed automatically as interviews come in. You only need enough answered responses to fill the requested number of clusters; if there are too few, the call returns ``400`` (lower ``n_clusters`` or wait for more responses). The result is saved: it appears on the study's Analyze page in the dashboard and can be re-fetched later with ``GET .../clustering/latest``. Required: study_id. Optional: n_clusters (default: 3), question_id, question_number.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/analysis/cluster",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "n_clusters",
+          "type": "int",
+          "location": "body",
+          "description": "Number of clusters"
+        },
+        {
+          "name": "question_id",
+          "type": "string",
+          "location": "body",
+          "description": "Questions-table ID (linear) or graph step ID (graph mode). A graph step id is the one you authored, as ``get_graph`` reports it"
+        },
+        {
+          "name": "question_number",
+          "type": "string",
+          "location": "body",
+          "description": "Alternative to question_id for linear studies"
+        }
+      ]
+    },
+    {
+      "name": "studies_characteristics_create",
+      "description": "Add a characteristic question. Required: study_id, question, variable. Optional: options, question_type (default: multiple), slot_description. Returns array of string.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/characteristics/questions",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "options",
+          "type": "string_csv_array",
+          "location": "body",
+          "description": "Answer options (multiple-choice questions)"
+        },
+        {
+          "name": "question",
+          "type": "string",
+          "location": "body",
+          "description": "Question text",
+          "required": true
+        },
+        {
+          "name": "question_type",
+          "type": "string",
+          "location": "body",
+          "description": "'multiple' (choose from options) or 'slot' (free-form value described by slot_description)"
+        },
+        {
+          "name": "slot_description",
+          "type": "string",
+          "location": "body",
+          "description": "What value to elicit (slot questions)"
+        },
+        {
+          "name": "variable",
+          "type": "string",
+          "location": "body",
+          "description": "Variable name the answer is stored under",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_characteristics_delete",
+      "description": "Delete a characteristic question. Required: question_id, study_id. Returns the SuccessResponse. Destructive.",
+      "method": "DELETE",
+      "path": "/api/v1/studies/{study_id}/characteristics/questions/{question_id}",
+      "params": [
+        {
+          "name": "question_id",
+          "type": "string",
+          "location": "path",
+          "description": "Question id",
+          "required": true
+        },
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_characteristics_get",
+      "description": "Settings plus the ordered characteristic question list. Required: study_id. Returns array of CharacteristicQuestionOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/characteristics",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_characteristics_reorder-questions",
+      "description": "Supply every characteristic question ID in the desired order. Required: study_id, question_ids. Returns array of CharacteristicQuestionOut.",
+      "method": "PUT",
+      "path": "/api/v1/studies/{study_id}/characteristics/questions/order",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "question_ids",
+          "type": "string_csv_array",
+          "location": "body",
+          "description": "All question IDs in the desired order",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_characteristics_set-settings",
+      "description": "Enable/disable characteristic collection. Disabling preserves the question list. Required: study_id, enabled. Optional: anonymous (default: false). Returns the updated CharacteristicsSettingsOut.",
+      "method": "PUT",
+      "path": "/api/v1/studies/{study_id}/characteristics/settings",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "anonymous",
+          "type": "bool",
+          "location": "body",
+          "description": "Whether the study skips collecting participant first names"
+        },
+        {
+          "name": "enabled",
+          "type": "bool",
+          "location": "body",
+          "description": "Whether participant characteristics are collected before the interview",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_characteristics_update",
+      "description": "Update a characteristic question. Required: question_id, study_id. Optional: options, question, question_type (plus 2 more). Returns array of string.",
+      "method": "PATCH",
+      "path": "/api/v1/studies/{study_id}/characteristics/questions/{question_id}",
+      "params": [
+        {
+          "name": "question_id",
+          "type": "string",
+          "location": "path",
+          "description": "Question id",
+          "required": true
+        },
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "options",
+          "type": "string",
+          "location": "body",
+          "description": "Options"
+        },
+        {
+          "name": "question",
+          "type": "string",
+          "location": "body",
+          "description": "Question"
+        },
+        {
+          "name": "question_type",
+          "type": "string",
+          "location": "body",
+          "description": "Question type"
+        },
+        {
+          "name": "slot_description",
+          "type": "string",
+          "location": "body",
+          "description": "Slot description"
+        },
+        {
+          "name": "variable",
+          "type": "string",
+          "location": "body",
+          "description": "Variable"
+        }
+      ]
+    },
+    {
+      "name": "studies_embed_get-snippet",
+      "description": "Generate the HTML install snippet for embedding this study's interview widget. Pass ``publishable_key`` (from key creation) to fill it into the snippet; otherwise a placeholder is emitted. ``mode`` selects the widget presentation (default ``chat``). The signed-token variant is also returned for servers that mint per-visitor JWS (HS256) tokens with the key's signing secret. **Metadata.** Both snippets can carry context that is stored with the interview and shown alongside the transcript (plan, tenant, seat count, and so on). The basic snippet includes a ``data-metadata`` placeholder holding an example flat JSON object — replace its keys with your own, or delete the attribute if you have no context to attach. * ``data-metadata`` is **page-supplied and therefore untrusted**: a visitor can change it with browser dev tools before the interview starts. That is fine for context you only want to read next to the transcript. It is not fine when the interview has to act on the value — asking enterprise-only questions, skipping a section for trial users, or reporting results split by plan. * For those cases use ``signed_snippet`` instead of the basic one: your server mints a short-lived token (HS256, ``kid`` header = the publishable key, ``sub`` = your stable end-user id, ``exp`` no more than 900s after ``iat``) with a ``metadata`` claim, signed with that key's signing secret, and the page sends it as ``data-signed-token`` in place of ``data-publishable-key``. Those values are recorded with provenance ``'token'`` (shown as verified in the dashboard) and override any page-supplied value of the same name, so a tag may carry ``data-metadata`` as well when some values need not be verified. * ``participant_id`` is the one key with a meaning of its own: whatever value it holds is also stored on the interview as ``external_participant_id``, so an embedded study can be joined back to your own users the same way a link built with ``?participant_id=`` can. It stays in the metadata bag as well. Page-supplied it is no more trustworthy than any other key — it labels the row and identifies nobody; send it in the signed token when it has to be verified. Keep it pseudonymous either way (a hash of your user id, not an email): it is stored on the interview, exported, and sent on the ``interview.completed`` webhook. * Limits, enforced at bootstrap — a payload that breaks any of them is rejected outright, so validate before you send: at most 32 keys; key names match ``^[A-Za-z_][A-Za-z0-9_]{0,63}$``; scalar values only (string \u003c= 1 KB, number, bool, null) — no nested objects or arrays; total serialized size \u003c= the key's ``metadata_max_bytes``. Required: study_id. Optional: publishable_key, mode (default: chat). Returns the EmbedSnippetOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/embed/snippet",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "publishable_key",
+          "type": "string",
+          "location": "query",
+          "description": "Publishable key to embed in the snippet"
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "location": "query",
+          "description": "Widget mode attribute (data-mode)"
+        }
+      ]
+    },
+    {
+      "name": "studies_graph_activate",
+      "description": "Switch the study to `graph` mode: interviews follow the stored flow instead of the linear question list. Requires a flow that last saved without problems. The question list is left untouched — `deactivate_graph` switches back to it at any time. Required: study_id. Returns the new GraphModeOut.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/graph/activate",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_graph_check",
+      "description": "Validate a flow and report every problem, changing nothing. Use this while drafting: iterate here until `valid` is true, then save with `set_graph`. Pass the flow in `flow`, or omit it to re-check the study's stored flow. Each problem names the step it is on using **your own step ids**, a stable `code`, and a plain-language `message`. Common codes: * `no_default` — a decision step has several paths but no `'default': true` one * `unreachable` / `no_path_to_end` — a step can't be reached, or can't reach an end * `var_not_guaranteed` — a step uses a captured answer that earlier branching means might not exist yet * `unattached` — an extract/webhook/context_fetch step is missing `after`/`before` * `missing_max_revisits` — a step inside a loop has no repeat limit * `private_url` — a fetch or webhook URL points at an internal address When the flow is valid, `compiled` shows the derived captured-answer table and the final execution order with side steps spliced into place — worth checking that attachments landed where you intended. Required: study_id. Optional: flow. Returns array of FlowCheckError.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/graph/check",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "flow",
+          "type": "string",
+          "location": "body",
+          "description": "The flow to check. Omit to re-check the study's stored flow."
+        }
+      ]
+    },
+    {
+      "name": "studies_graph_deactivate",
+      "description": "Switch the study back to `linear` mode. The stored flow is kept, just not used. Required: study_id. Returns the new GraphModeOut.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/graph/deactivate",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_graph_get",
+      "description": "The study's interview flow, in the same shape `set_graph` accepts — so you can read it, change part of it, and write it back. Also reports whether the flow is the study's active interview script (`interview_mode`), and its `graph_version`, which you can pass to `set_graph` or `patch_graph` to avoid overwriting an edit made in the browser meanwhile. `flow` is null when the study has no interview flow yet; it still runs its linear question list, and `import_questions_to_graph` will turn that list into a starting flow. Required: study_id. Returns array of FlowCheckError.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/graph",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_graph_get-flow-signals",
+      "description": "The delivery config behind every 'Send a signal' (`webhook`) step in the saved flow, **including the signing secret** each step's deliveries are signed with. A signal is fired by the interviewer mid-interview, at the point in the flow where the step sits — distinct from the organization-level webhooks (the Webhooks endpoints), which this dashboard fires for lifecycle events like `interview.completed`. The secret is minted the first time the step is saved and kept stable across later saves, so a receiver configured once keeps verifying. Verify each delivery's `webhook-signature` against the secret for the step that sent it before acting on the body, and dedupe on `webhook-id`. To see what a particular interview actually sent, and whether it was accepted, use `get_interview_fetches_and_signals`. Required: study_id. Returns array of FlowSignalOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/graph/signals",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_graph_import-questions-to",
+      "description": "Build a straight-line flow from the study's existing linear questions — start → each question in order → end — and save it, **replacing any flow the study already has**. The usual starting point: you get a flow that behaves exactly like the current interview, then add branching to it with `patch_graph`. Each question captures its answer as `q1`, `q2`, … so you can branch on them or pipe them into later question text straight away. Does not change the study's interview mode; call `activate_graph` when ready. Required: study_id. Returns array of FlowCheckError.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/graph/import-questions",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_graph_patch",
+      "description": "Apply targeted edits to the stored flow instead of rewriting it — safer than read-modify-write on a large flow, and it leaves untouched steps exactly as the researcher arranged them. Operations are applied in order to the stored flow, then the **result is validated as a whole**, so passing through an invalid intermediate state is fine. As with `set_graph`, nothing is saved unless the end state is valid. * `{'op': 'add_node', 'node': {...}}` * `{'op': 'update_node', 'id': 'q_pets', 'config': {'text': 'New wording?'}}` — merges into the step's config; omitted keys keep their value, `null` clears one * `{'op': 'remove_node', 'id': 'q_pets'}` — also drops its connections and detaches anything attached to it * `{'op': 'add_edge', 'edge': {'from': 'branch', 'to': 'q_ideal', 'default': true}}` * `{'op': 'update_edge', 'from': 'branch', 'to': 'q_story', 'condition': {...}}` * `{'op': 'remove_edge', 'from': 'branch', 'to': 'q_story'}` Example — rewording a question and raising its turn limit: ```json {'ops': [{'op': 'update_node', 'id': 'q_story', 'config': {'text': 'Tell me more about your pet.', 'max_turns': 6}}]} ```. Required: study_id, ops. Optional: expected_graph_version. Returns array of FlowCheckError.",
+      "method": "PATCH",
+      "path": "/api/v1/studies/{study_id}/graph",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "expected_graph_version",
+          "type": "string",
+          "location": "body",
+          "description": "Optimistic concurrency; see `set_graph`."
+        },
+        {
+          "name": "ops",
+          "type": "array",
+          "location": "body",
+          "description": "Edits applied in order to the stored flow, then validated as a whole.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_graph_set",
+      "description": "Write a complete interview flow, replacing whatever is stored. **Nothing is saved unless the flow is valid** — on any problem this returns 422 with the same error list `check_graph` gives, and the stored flow is untouched. Steps are connected two different ways, and mixing them up is the most common mistake: * `start`, `end`, `question` and `decision` steps sit on the interview's path and are connected with `edges`. * `extract` and `webhook` steps attach to a question with `'after': '\u003cquestion id\u003e'`, and `context_fetch` attaches with `'before': '\u003cquestion id\u003e'`. They are never listed in `edges`; the compiler splices them into the right place. A minimal branching flow: ```json {'flow': {'nodes': [ {'id': 'start', 'type': 'start'}, {'id': 'q_pets', 'type': 'question', 'config': {'qtype': 'options', 'text': 'Do you have pets?', 'options': ['Yes', 'No'], 'output_var': 'has_pets'}}, {'id': 'branch', 'type': 'decision', 'config': {'mode': 'deterministic'}}, {'id': 'q_story', 'type': 'question', 'config': {'qtype': 'open_ended', 'text': 'Tell me about your pet.'}}, {'id': 'q_ideal', 'type': 'question', 'config': {'qtype': 'open_ended', 'text': 'Describe your ideal pet.'}}, {'id': 'end', 'type': 'end'} ], 'edges': [ {'from': 'start', 'to': 'q_pets'}, {'from': 'q_pets', 'to': 'branch'}, {'from': 'branch', 'to': 'q_story', 'condition': {'var': 'has_pets', 'op': 'eq', 'value': 'Yes'}, 'priority': 0}, {'from': 'branch', 'to': 'q_ideal', 'default': true, 'priority': 1}, {'from': 'q_story', 'to': 'end'}, {'from': 'q_ideal', 'to': 'end'} ]}} ``` Use `{{captured_answer}}` in question text to pipe an earlier answer in. The validator enforces that a captured answer is only used where it is guaranteed to exist. Saving does not switch the study into graph mode — call `activate_graph` for that. The flow is fully editable afterwards in the browser flow editor, and step ids, positions and webhook signing secrets survive round trips. Required: study_id, flow. Optional: expected_graph_version.",
+      "method": "PUT",
+      "path": "/api/v1/studies/{study_id}/graph",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "expected_graph_version",
+          "type": "string",
+          "location": "body",
+          "description": "Optimistic concurrency: pass the `graph_version` you last read and the write is refused with 409 if a researcher has since edited the flow in the browser. Omit to overwrite unconditionally."
+        },
+        {
+          "name": "flow-edges",
+          "wire_name": "flow.edges",
+          "type": "array",
+          "location": "body",
+          "description": "Connections between start/end/question/decision steps only. extract, webhook and context_fetch steps attach with `after`/`before` instead."
+        },
+        {
+          "name": "flow-nodes",
+          "wire_name": "flow.nodes",
+          "type": "array",
+          "location": "body",
+          "description": "Every step in the flow. Exactly one `start`, at least one `end`.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_interviews_find-by-external-id",
+      "description": "Every interview in this study that arrived carrying ``external_participant_id`` — your own id for the person, from the entry link's ``?participant_id=`` or the embed metadata bag's ``participant_id`` key — in full detail, newest first. The direct answer to 'did this person finish, and what happened?' when you hold your id for them and not ours. Expect more than one row sometimes: a person who abandons and starts again has an interview per attempt, and ``total`` says how many. An empty list means nobody has arrived on a link carrying that id — not that they were screened out. For the transcripts behind these interviews, pass the same id to ``bulk_transcripts``; for one interview's messages, ``get_transcript`` with the id from a row here. The match is exact, and the id is participant-supplied text: it says which of your own records to look at, it does not authenticate anybody. Required: study_id, external_participant_id. Optional: include_simulated (default: false), limit (default: 20). Returns array of InterviewDetailOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/interviews/by-external-id",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "external_participant_id",
+          "type": "string",
+          "location": "query",
+          "description": "Your own id for the participant, exactly as the entry link or embed metadata carried it",
+          "required": true
+        },
+        {
+          "name": "include_simulated",
+          "type": "bool",
+          "location": "query",
+          "description": "Include simulated (persona) interviews"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "location": "query",
+          "description": "Most recent N attempts"
+        }
+      ]
+    },
+    {
+      "name": "studies_interviews_list",
+      "description": "Interviews for a study, newest first. Filter by completion status, simulation flag, and start-time range. Each row carries where the participant arrived from — ``web_source`` (the entry link's ?source= tag), ``external_participant_id`` (its ?participant_id=, or the embed metadata bag's participant_id key) and ``referrer``. Pass ``external_participant_id`` to look up one person's interviews by your own id for them. Required: study_id. Optional: completed, simulated (default: false), external_participant_id (plus 4 more). Returns array of InterviewSummary.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/interviews",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "completed",
+          "type": "string",
+          "location": "query",
+          "description": "Filter by completion status"
+        },
+        {
+          "name": "simulated",
+          "type": "string",
+          "location": "query",
+          "description": "true = only simulated, false = only real (default), null = both"
+        },
+        {
+          "name": "external_participant_id",
+          "type": "string",
+          "location": "query",
+          "description": "Only interviews that arrived with this exact id — your own identifier for the participant, from the entry link's ?participant_id= or the embed metadata bag. The way to answer 'did this person finish?' without scanning the study"
+        },
+        {
+          "name": "started_after",
+          "type": "string",
+          "location": "query",
+          "description": "Only interviews started after"
+        },
+        {
+          "name": "started_before",
+          "type": "string",
+          "location": "query",
+          "description": "Only interviews started before"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "location": "query",
+          "description": "Limit"
+        },
+        {
+          "name": "offset",
+          "type": "int",
+          "location": "query",
+          "description": "Offset"
+        }
+      ]
+    },
+    {
+      "name": "studies_personas_create",
+      "description": "Write a persona by hand. Describe the participant the way you would brief an actor — who they are, what they are dealing with, how they feel about the subject — since that description is the only thing shaping their answers. Example: `{'content': 'A 34-year-old ICU nurse in Leeds, six years on the job, sceptical of new scheduling software after a botched rollout last year. Blunt, short on time, warms up when asked about patient safety.'}`. Required: study_id, content. Optional: source (default: manual). Returns the new PersonaOut.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/personas",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "location": "body",
+          "description": "Who this simulated participant is — background, situation, attitudes, and anything that should shape their answers. Written as prose, in the third person, as if briefing an actor.",
+          "required": true
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "location": "body",
+          "description": "Where the persona came from: 'manual' (default) or 'generated'"
+        }
+      ]
+    },
+    {
+      "name": "studies_personas_delete",
+      "description": "Interviews already simulated with this persona are kept. Required: persona_id, study_id. Returns the SuccessResponse. Destructive.",
+      "method": "DELETE",
+      "path": "/api/v1/studies/{study_id}/personas/{persona_id}",
+      "params": [
+        {
+          "name": "persona_id",
+          "type": "string",
+          "location": "path",
+          "description": "Persona id",
+          "required": true
+        },
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_personas_generate",
+      "description": "Draft personas from the study's own context — its type, description, research question, objectives and target population — so they resemble the people you intend to recruit. Fill those fields in on the study first; a sparse study yields generic personas. Generated personas are saved to the study by default (``source: 'generated'``); pass ``save: false`` to preview them without storing anything. Required: study_id. Optional: count (default: 1), save (default: true). Returns array of PersonaOut.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/personas/generate",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "count",
+          "type": "int",
+          "location": "body",
+          "description": "How many personas to generate in one call (1-10, the generator's own ceiling). Call again for more."
+        },
+        {
+          "name": "save",
+          "type": "bool",
+          "location": "body",
+          "description": "Persist the generated personas to the study (the default). Pass false to preview them without saving — nothing is stored and the returned personas have no ids."
+        }
+      ]
+    },
+    {
+      "name": "studies_personas_list",
+      "description": "Every persona defined for the study, newest first. Required: study_id. Returns array of PersonaOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/personas",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_personas_update",
+      "description": "Replace a persona's description. Simulations already run keep the text they ran against — this only affects future runs. Required: persona_id, study_id, content. Returns the updated PersonaOut.",
+      "method": "PATCH",
+      "path": "/api/v1/studies/{study_id}/personas/{persona_id}",
+      "params": [
+        {
+          "name": "persona_id",
+          "type": "string",
+          "location": "path",
+          "description": "Persona id",
+          "required": true
+        },
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "location": "body",
+          "description": "Replacement persona description",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_questions_create",
+      "description": "Create a question and append it to the end of the study's question list. Set ``qtype`` and provide only the config fields that type needs. If ``qtype`` is omitted the type is inferred from which fields you send: ``scale`` → scale, ``options`` → choices, ``slots`` → slots, ``expected_image`` → image_upload, otherwise text. Example bodies: * **Open text** — `{'question': 'Walk me through your last purchase.', 'follow_up': true, 'max_turns': 6}` * **Scale** — `{'question': 'How satisfied are you?', 'qtype': 'scale', 'scale': {'minScale': 1, 'maxScale': 5, 'minLabel': 'Not at all', 'maxLabel': 'Very'}}` * **Single choice** — `{'question': 'Which plan are you on?', 'qtype': 'choices', 'options': ['Basic', 'Pro']}` * **Multi-select** — `{'question': 'Which features do you use?', 'qtype': 'multi_select', 'options': ['Search', 'Export', 'API'], 'min_select': 1, 'max_select': 2}` * **Card sort** — `{'question': 'Sort these into buckets.', 'qtype': 'card_sort', 'options': ['Apple', 'Carrot'], 'groups': ['Fruit', 'Vegetable']}`. Required: study_id, question. Optional: expected_image, explanation, follow_up (default: true) (plus 9 more). Returns array of QuestionImageOut.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/questions",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "expected_image",
+          "type": "string",
+          "location": "body",
+          "description": "Description of the expected upload (image_upload questions)"
+        },
+        {
+          "name": "explanation",
+          "type": "string",
+          "location": "body",
+          "description": "Interviewer guidance for probing this question"
+        },
+        {
+          "name": "follow_up",
+          "type": "bool",
+          "location": "body",
+          "description": "Whether the interviewer asks follow-ups"
+        },
+        {
+          "name": "groups",
+          "type": "string",
+          "location": "body",
+          "description": "Bucket names (card_sort questions)"
+        },
+        {
+          "name": "max_select",
+          "type": "string",
+          "location": "body",
+          "description": "Maximum selections (multi_select; 0/null = none)"
+        },
+        {
+          "name": "max_turns",
+          "type": "string",
+          "location": "body",
+          "description": "Maximum conversation turns"
+        },
+        {
+          "name": "min_select",
+          "type": "string",
+          "location": "body",
+          "description": "Minimum selections (multi_select; 0/null = none)"
+        },
+        {
+          "name": "min_turns",
+          "type": "string",
+          "location": "body",
+          "description": "Minimum conversation turns"
+        },
+        {
+          "name": "options",
+          "type": "string",
+          "location": "body",
+          "description": "Answer options (choices / multi_select / ranking questions)"
+        },
+        {
+          "name": "qtype",
+          "type": "string",
+          "location": "body",
+          "description": "Explicit question type. If omitted, inferred from the config fields: scale → scale, options → choices, slots → slots, expected_image → image_upload, otherwise text. 'image_upload' needs a vision-capable interview model (the standard or premium tier), so it is rejected with 403 on plans limited to the open-weights model."
+        },
+        {
+          "name": "question",
+          "type": "string",
+          "location": "body",
+          "description": "Question text",
+          "required": true
+        },
+        {
+          "name": "scale",
+          "type": "string",
+          "location": "body",
+          "description": "Scale config (scale questions)"
+        },
+        {
+          "name": "slots",
+          "type": "string",
+          "location": "body",
+          "description": "Named slots to fill (slots questions)"
+        }
+      ]
+    },
+    {
+      "name": "studies_questions_delete",
+      "description": "Removes the question, its attached images, and its list entry; remaining questions are renumbered. Required: question_id, study_id. Returns the SuccessResponse. Destructive.",
+      "method": "DELETE",
+      "path": "/api/v1/studies/{study_id}/questions/{question_id}",
+      "params": [
+        {
+          "name": "question_id",
+          "type": "string",
+          "location": "path",
+          "description": "Question id",
+          "required": true
+        },
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_questions_list",
+      "description": "The study's main questions, resolved and in interview order. Required: study_id. Returns array of QuestionOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/questions",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_questions_reorder",
+      "description": "Supply every question ID in the desired interview order. Required: study_id, question_ids. Returns array of QuestionOut.",
+      "method": "PUT",
+      "path": "/api/v1/studies/{study_id}/questions/order",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "question_ids",
+          "type": "string_csv_array",
+          "location": "body",
+          "description": "All question IDs in the desired order",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_questions_update",
+      "description": "Partial update. Pass an empty list to clear ``options``/``slots``/``groups``. Required: question_id, study_id. Optional: expected_image, explanation, follow_up (plus 10 more). Returns array of QuestionImageOut.",
+      "method": "PATCH",
+      "path": "/api/v1/studies/{study_id}/questions/{question_id}",
+      "params": [
+        {
+          "name": "question_id",
+          "type": "string",
+          "location": "path",
+          "description": "Question id",
+          "required": true
+        },
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "expected_image",
+          "type": "string",
+          "location": "body",
+          "description": "Expected image"
+        },
+        {
+          "name": "explanation",
+          "type": "string",
+          "location": "body",
+          "description": "Explanation"
+        },
+        {
+          "name": "follow_up",
+          "type": "string",
+          "location": "body",
+          "description": "Follow up"
+        },
+        {
+          "name": "groups",
+          "type": "string",
+          "location": "body",
+          "description": "Groups"
+        },
+        {
+          "name": "max_select",
+          "type": "string",
+          "location": "body",
+          "description": "Max select"
+        },
+        {
+          "name": "max_turns",
+          "type": "string",
+          "location": "body",
+          "description": "Max turns"
+        },
+        {
+          "name": "min_select",
+          "type": "string",
+          "location": "body",
+          "description": "Min select"
+        },
+        {
+          "name": "min_turns",
+          "type": "string",
+          "location": "body",
+          "description": "Min turns"
+        },
+        {
+          "name": "options",
+          "type": "string",
+          "location": "body",
+          "description": "Options"
+        },
+        {
+          "name": "qtype",
+          "type": "string",
+          "location": "body",
+          "description": "Qtype"
+        },
+        {
+          "name": "question",
+          "type": "string",
+          "location": "body",
+          "description": "Question"
+        },
+        {
+          "name": "scale",
+          "type": "string",
+          "location": "body",
+          "description": "Scale"
+        },
+        {
+          "name": "slots",
+          "type": "string",
+          "location": "body",
+          "description": "Slots"
+        }
+      ]
+    },
+    {
+      "name": "studies_questions_validate",
+      "description": "Review the study's questions before it goes live, the same check the dashboard's **Validate** button runs. Returns three things: * **Ethics** — one pass/fail for the whole set, with the specific concerns when it fails (offensive or intrusive wording, targeting under-13s, asking for identifying, financial, or medical details, requesting explicit images). * **Language quality** — per question, any clarity, grammar, or spelling problem, judged in the study's own language. * **Redundancy** — per question, which other questions it overlaps with and how. Findings carry both the question's ``number`` (1-based interview order) and its ``question_id``, so you can act on them with ``PATCH .../questions/{question_id}``. Nothing is changed by this call, and no result is stored — it is advisory only. This is a model call over the whole question set, so it typically takes ten to twenty seconds. Required: study_id.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/questions/validate",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_recruitment_get",
+      "description": "Participation links, quota status, and pre-interview gate flags. The links come back bare: append ``\u0026source=\u003cyour campaign tag\u003e`` and/or ``\u0026participant_id=\u003cyour id for this person\u003e`` to attribute the arrival — they are recorded on the interview as ``web_source`` and ``external_participant_id``, and can be read back and filtered on. ``participant_id`` here is your own free-text id, not the Deutero participant UUID of the same name. Required: study_id. Returns the RecruitmentOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/recruitment",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_recruitment_update",
+      "description": "Set a custom short-link slug, the response quota, and/or the post-completion redirect URL. Omitted fields are untouched; set ``clear_max_responses`` to true to remove the quota. The slug must be unique across all studies. The redirect URL may carry ``{{external_participant_id}}``, which is replaced at the end of the interview with the id that interview arrived with (from the link's ``?participant_id=`` or the embed metadata bag) — the usual way to hand a panel or CRM its own id back on completion. It expands to the empty string for an interview that carried no id, so a callback that requires one should be built from links that always set it. ``{{external_participant_id}}`` is the only placeholder either redirect understands. A single-braced ``{external_participant_id}`` is corrected to it (a URL stored with the literal text would silently never substitute); any other ``{{…}}`` is stored untouched but named in ``redirect_url_warning``, which is null when the URL was stored exactly as sent. Required: study_id. Optional: clear_max_responses (default: false), max_responses, redirect_url (plus 1 more). Returns the updated RecruitmentOut.",
+      "method": "PUT",
+      "path": "/api/v1/studies/{study_id}/recruitment",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "clear_max_responses",
+          "type": "bool",
+          "location": "body",
+          "description": "Set true to remove the response quota"
+        },
+        {
+          "name": "max_responses",
+          "type": "string",
+          "location": "body",
+          "description": "Response quota; set to null via clear_max_responses"
+        },
+        {
+          "name": "redirect_url",
+          "type": "string",
+          "location": "body",
+          "description": "Post-completion redirect. Use {{external_participant_id}} anywhere in it to hand your own participant id back to a panel or CRM — e.g. https://panel.example/done?pid={{external_participant_id}}"
+        },
+        {
+          "name": "short_url_slug",
+          "type": "string",
+          "location": "body",
+          "description": "Custom short-link slug (lowercase letters, digits, hyphens). Must be unique across all studies."
+        }
+      ]
+    },
+    {
+      "name": "studies_screening_create",
+      "description": "Appends a multiple-choice qualifying question. ``acceptable_options`` must be a subset of ``options``. Required: study_id, acceptable_options, options, question. Returns the new ScreeningQuestionOut.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/screening/questions",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "acceptable_options",
+          "type": "string_csv_array",
+          "location": "body",
+          "description": "Subset of options that qualify the participant",
+          "required": true
+        },
+        {
+          "name": "options",
+          "type": "string_csv_array",
+          "location": "body",
+          "description": "Answer options",
+          "required": true
+        },
+        {
+          "name": "question",
+          "type": "string",
+          "location": "body",
+          "description": "Screening question text",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_screening_delete",
+      "description": "Removes the question and renumbers the remaining list. Any recorded participant answers to it are deleted with it. Required: question_id, study_id. Returns the SuccessResponse. Destructive.",
+      "method": "DELETE",
+      "path": "/api/v1/studies/{study_id}/screening/questions/{question_id}",
+      "params": [
+        {
+          "name": "question_id",
+          "type": "string",
+          "location": "path",
+          "description": "Question id",
+          "required": true
+        },
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_screening_get",
+      "description": "Settings plus the ordered screening question list. Required: study_id. Returns array of ScreeningQuestionOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/screening",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_screening_reorder-questions",
+      "description": "Supply every screening question ID in the desired order. Required: study_id, question_ids. Returns array of ScreeningQuestionOut.",
+      "method": "PUT",
+      "path": "/api/v1/studies/{study_id}/screening/questions/order",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "question_ids",
+          "type": "string_csv_array",
+          "location": "body",
+          "description": "All question IDs in the desired order",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_screening_set-settings",
+      "description": "Enable/disable screening and set the disqualification message and redirect URL. Disabling preserves questions and settings. The redirect URL may carry ``{{external_participant_id}}``, replaced at screen-out time with the id this interview arrived with, so a panel callback can say who bounced as well as who finished. It is the only placeholder understood: a single-braced ``{external_participant_id}`` is corrected to it, and any other ``{{…}}`` is stored untouched but named in ``redirect_url_warning``. Required: study_id, enabled. Optional: disqualification_message, redirect_url. Returns the updated ScreeningSettingsOut.",
+      "method": "PUT",
+      "path": "/api/v1/studies/{study_id}/screening/settings",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "disqualification_message",
+          "type": "string",
+          "location": "body",
+          "description": "Message shown to participants who do not qualify"
+        },
+        {
+          "name": "enabled",
+          "type": "bool",
+          "location": "body",
+          "description": "Whether screening runs before the interview",
+          "required": true
+        },
+        {
+          "name": "redirect_url",
+          "type": "string",
+          "location": "body",
+          "description": "Optional URL disqualified participants are sent to. Takes the same placeholder as the completion redirect: {{external_participant_id}} is replaced with the id this interview arrived with (the entry link's ?participant_id=, or the embed metadata bag's participant_id key), so a panel can be told who was screened out as well as who finished. It expands to the empty string for an interview that carried no id"
+        }
+      ]
+    },
+    {
+      "name": "studies_screening_update",
+      "description": "Update a screening question. Required: question_id, study_id. Optional: acceptable_options, options, question. Returns the updated ScreeningQuestionOut.",
+      "method": "PATCH",
+      "path": "/api/v1/studies/{study_id}/screening/questions/{question_id}",
+      "params": [
+        {
+          "name": "question_id",
+          "type": "string",
+          "location": "path",
+          "description": "Question id",
+          "required": true
+        },
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "acceptable_options",
+          "type": "string",
+          "location": "body",
+          "description": "Acceptable options"
+        },
+        {
+          "name": "options",
+          "type": "string",
+          "location": "body",
+          "description": "Options"
+        },
+        {
+          "name": "question",
+          "type": "string",
+          "location": "body",
+          "description": "Question"
+        }
+      ]
+    },
+    {
+      "name": "studies_search_transcripts",
+      "description": "Search participant answers in a study. * ``mode=string`` — full-text (websearch syntax: quoted phrases, ``-term``) fused with trigram fuzzy matching. No external services required. * ``mode=semantic`` — embedding similarity over stored response vectors (query embedded with Voyage AI). Finds conceptual matches that share no words with the query. Only messages that have embeddings are searchable. * ``mode=hybrid`` (default) — reciprocal-rank fusion of all three rankings; falls back to string-only behavior if semantic search is unavailable and ``strict`` is false. Optionally scope to one question with ``question_id`` (questions-table ID, or graph node ID for graph-mode studies). Required: study_id, q. Optional: mode (default: hybrid), question_id, completed_only (default: false) (plus 4 more). Returns array of SearchHit.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/search",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "q",
+          "type": "string",
+          "location": "query",
+          "description": "Search query",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "location": "query",
+          "description": "Mode"
+        },
+        {
+          "name": "question_id",
+          "type": "string",
+          "location": "query",
+          "description": "Restrict to one question. A questions-table id for a linear study, or a graph step id for a flow study — the step id you authored, exactly as ``get_graph`` reports it"
+        },
+        {
+          "name": "completed_only",
+          "type": "bool",
+          "location": "query",
+          "description": "Only completed interviews"
+        },
+        {
+          "name": "include_simulated",
+          "type": "bool",
+          "location": "query",
+          "description": "Include simulated interviews"
+        },
+        {
+          "name": "external_participant_id",
+          "type": "string",
+          "location": "query",
+          "description": "Restrict to the interviews of one person, named by your own id for them (the entry link's ?participant_id= or the embed metadata bag's participant_id key)"
+        },
+        {
+          "name": "strict",
+          "type": "bool",
+          "location": "query",
+          "description": "hybrid mode: fail (503) instead of silently degrading to string search when semantic search is unavailable"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "location": "query",
+          "description": "Limit"
+        }
+      ]
+    },
+    {
+      "name": "studies_simulations_list",
+      "description": "Every simulation run for the study, newest first, with the interview each produced and what it cost. Required: study_id. Optional: status, limit (default: 50), offset (default: 0). Returns array of SimulationOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/simulations",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "location": "query",
+          "description": "Filter by lifecycle state: 'running', 'completed' or 'failed'"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "location": "query",
+          "description": "Limit"
+        },
+        {
+          "name": "offset",
+          "type": "int",
+          "location": "query",
+          "description": "Offset"
+        }
+      ]
+    },
+    {
+      "name": "studies_simulations_run",
+      "description": "Start one simulated interview and return immediately — the run continues in the background, so poll ``GET /simulations/{simulation_id}`` for its outcome. Credits are reserved at the estimated cost before the run starts; a request that would exceed the balance is refused with 402 and costs nothing. Plan limits apply: simulations are not available on Hobby, and the standard/premium tiers need Solo/Team. Run one persona per call; to sweep a panel, call once per persona. Required: study_id. Optional: deliver_signals (default: false), model_tier (default: open_weights), persona (plus 1 more). Returns the new SimulationStartOut.",
+      "method": "POST",
+      "path": "/api/v1/studies/{study_id}/simulations",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "deliver_signals",
+          "type": "bool",
+          "location": "body",
+          "description": "Let this run's 'Send a signal' steps reach their real endpoints. Off by default: a simulation records what each signal would have sent without sending it. When on, receivers get exactly what a live interview sends, plus an X-Deutero-Simulated header."
+        },
+        {
+          "name": "model_tier",
+          "type": "string",
+          "location": "body",
+          "description": "Which model conducts and answers the interview: 'open_weights' (cheapest), 'standard' (Solo plan and up), or 'premium' (Team plan). Higher tiers cost more credits per run. The former name 'frontier' is still accepted and means 'premium'."
+        },
+        {
+          "name": "persona",
+          "type": "string",
+          "location": "body",
+          "description": "Ad-hoc persona description, used when no ``persona_id`` is given. Overrides the stored text if both are supplied."
+        },
+        {
+          "name": "persona_id",
+          "type": "string",
+          "location": "body",
+          "description": "Persona to play the participant. Omit to run against a generic participant, or pass ``persona`` to use ad-hoc text instead."
+        }
+      ]
+    },
+    {
+      "name": "studies_stats_get-study",
+      "description": "Counts of started/completed/incomplete interviews, completion rate, and quota fill relative to ``max_responses``. Simulated (persona) interviews are counted separately. Required: study_id. Returns the StudyStatsOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/stats",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_transcripts_bulk",
+      "description": "Full transcripts for a study's interviews, newest interview first, paginated by interview. Each transcript also carries ``variables`` — the answers that interview captured into Interview Flow variables, empty for a study that captures nothing. Filter with ``completed`` and ``include_simulated``. For a single interview use ``GET /interviews/{interview_id}/transcript``. Pass ``external_participant_id`` to fetch the transcripts of one person by your own id for them — the id the entry link's ``?participant_id=`` or the embed metadata bag carried. Each transcript carries that id back, so an export can be joined to your own records without a second call. Required: study_id. Optional: completed, include_simulated (default: false), external_participant_id (plus 2 more). Returns array of InterviewTranscript.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/transcripts",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "completed",
+          "type": "string",
+          "location": "query",
+          "description": "Filter by completion status"
+        },
+        {
+          "name": "include_simulated",
+          "type": "bool",
+          "location": "query",
+          "description": "Include simulated interviews"
+        },
+        {
+          "name": "external_participant_id",
+          "type": "string",
+          "location": "query",
+          "description": "Only interviews that arrived with this exact id — your own identifier for the participant. The way to fetch one person's transcript when you hold your id for them and not ours"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "location": "query",
+          "description": "Interviews per page"
+        },
+        {
+          "name": "offset",
+          "type": "int",
+          "location": "query",
+          "description": "Offset"
+        }
+      ]
+    },
+    {
+      "name": "studies_welcome_delete",
+      "description": "Delete a translation. Required: translation_id, study_id. Returns the SuccessResponse. Destructive.",
+      "method": "DELETE",
+      "path": "/api/v1/studies/{study_id}/welcome/translations/{translation_id}",
+      "params": [
+        {
+          "name": "translation_id",
+          "type": "string",
+          "location": "path",
+          "description": "Translation id",
+          "required": true
+        },
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_welcome_get",
+      "description": "Get the welcome message. Required: study_id. Returns the WelcomeOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/welcome",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_welcome_list-translations",
+      "description": "List welcome-message translations. Required: study_id. Returns array of WelcomeTranslationOut.",
+      "method": "GET",
+      "path": "/api/v1/studies/{study_id}/welcome/translations",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_welcome_set",
+      "description": "Create or replace the study's welcome/consent message. Set ``consent`` to true to require participants to explicitly agree before the interview begins. Required: study_id, message. Optional: consent (default: false). Returns the updated WelcomeOut.",
+      "method": "PUT",
+      "path": "/api/v1/studies/{study_id}/welcome",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "consent",
+          "type": "bool",
+          "location": "body",
+          "description": "Whether the participant must explicitly consent to proceed"
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "location": "body",
+          "description": "Welcome/consent message shown before the interview",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "studies_welcome_upsert-translation",
+      "description": "Upserts the translation for ``target_language`` (one translation per target language). The welcome message must be set first. Required: study_id, target_language, translation_text. Optional: source_language (default: English). Returns the updated WelcomeTranslationOut.",
+      "method": "PUT",
+      "path": "/api/v1/studies/{study_id}/welcome/translations",
+      "params": [
+        {
+          "name": "study_id",
+          "type": "string",
+          "location": "path",
+          "description": "Study ID",
+          "required": true
+        },
+        {
+          "name": "source_language",
+          "type": "string",
+          "location": "body",
+          "description": "Source language name or ISO code"
+        },
+        {
+          "name": "target_language",
+          "type": "string",
+          "location": "body",
+          "description": "Target language name or ISO code (e.g. 'Spanish' or 'es')",
+          "required": true
+        },
+        {
+          "name": "translation_text",
+          "type": "string",
+          "location": "body",
+          "description": "Translated welcome message",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "webhooks_create",
+      "description": "Subscribe a URL of yours to organization events. The response carries the **signing secret, the only time it is ever shown** — store it before doing anything else, and verify every delivery against it. The endpoint receives events for every study the organization owns. Name the events you want in ``events``; an empty list means all of them. Required: label, url. Optional: enabled (default: true), events (default: []). Returns the new WebhookCreatedOut.",
+      "method": "POST",
+      "path": "/api/v1/webhooks",
+      "params": [
+        {
+          "name": "enabled",
+          "type": "bool",
+          "location": "body",
+          "description": "Whether deliveries start immediately"
+        },
+        {
+          "name": "events",
+          "type": "string_csv_array",
+          "location": "body",
+          "description": "Event types to subscribe to. **An empty list subscribes to every event** — pass the ones you want to narrow it. Unknown names are dropped; call list_webhook_event_types for the catalogue."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "location": "body",
+          "description": "How you will recognize this endpoint in the list",
+          "required": true
+        },
+        {
+          "name": "url",
+          "type": "string",
+          "location": "body",
+          "description": "Publicly reachable http(s) URL that receives the POSTs",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "webhooks_delete",
+      "description": "Permanently removes the endpoint and its delivery log. To stop deliveries temporarily, set ``enabled`` false with update_webhook instead — deleting throws the signing secret away with the endpoint. Required: webhook_id. Returns the WebhookDeleteOut. Destructive.",
+      "method": "DELETE",
+      "path": "/api/v1/webhooks/{webhook_id}",
+      "params": [
+        {
+          "name": "webhook_id",
+          "type": "string",
+          "location": "path",
+          "description": "Webhook endpoint ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "webhooks_list",
+      "description": "Every webhook endpoint in your organization, newest first. Signing secrets are not included — they are shown only when an endpoint is created or its secret is rotated. Returns the WebhookListOut.",
+      "method": "GET",
+      "path": "/api/v1/webhooks",
+      "params": []
+    },
+    {
+      "name": "webhooks_list-event-types",
+      "description": "Every event an endpoint can subscribe to, what makes it fire, and the fields its payload carries — read this before creating an endpoint, so the subscription names events that exist and the receiver knows what it will get. ``interview.completed`` and ``interview.started`` carry ``external_participant_id``, your own id for the participant, which is what lets a receiver act on a finished interview without calling back. Returns the WebhookEventTypeListOut.",
+      "method": "GET",
+      "path": "/api/v1/webhooks/event-types",
+      "params": []
+    },
+    {
+      "name": "webhooks_update",
+      "description": "Partial update: only the fields you send change. Set ``enabled`` false to pause deliveries without losing the endpoint or its secret. Changing ``events`` replaces the subscription list rather than adding to it. Required: webhook_id. Optional: enabled, events, label (plus 1 more). Returns array of string.",
+      "method": "PATCH",
+      "path": "/api/v1/webhooks/{webhook_id}",
+      "params": [
+        {
+          "name": "webhook_id",
+          "type": "string",
+          "location": "path",
+          "description": "Webhook endpoint ID",
+          "required": true
+        },
+        {
+          "name": "enabled",
+          "type": "string",
+          "location": "body",
+          "description": "false pauses deliveries without deleting the endpoint"
+        },
+        {
+          "name": "events",
+          "type": "string",
+          "location": "body",
+          "description": "Event types to subscribe to. **An empty list subscribes to every event** — pass the ones you want to narrow it. Unknown names are dropped; call list_webhook_event_types for the catalogue."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "location": "body",
+          "description": "Label"
+        },
+        {
+          "name": "url",
+          "type": "string",
+          "location": "body",
+          "description": "Url"
+        }
+      ]
+    },
+    {
+      "name": "webhooks_deliveries_list-webhook",
+      "description": "The delivery log for one endpoint, newest first: what was sent, who it was about, the status your server returned, and the error if it failed. This is the record to read when an expected event never arrived — a 4xx or a connection error here says the delivery was attempted and your receiver refused it, while no row at all says nothing fired (check that the endpoint is enabled and subscribed to that event type). Interview deliveries carry external_participant_id, your own id for the participant, so this log reconciles against your own records: success=false lists the people you were told about but may never have acted on, and external_participant_id=\u003cid\u003e shows every attempt for one person. Deliveries logged before that field existed report null. Required: webhook_id. Optional: event_type, success, external_participant_id (plus 2 more). Returns array of WebhookDeliveryOut.",
+      "method": "GET",
+      "path": "/api/v1/webhooks/{webhook_id}/deliveries",
+      "params": [
+        {
+          "name": "webhook_id",
+          "type": "string",
+          "location": "path",
+          "description": "Webhook endpoint ID",
+          "required": true
+        },
+        {
+          "name": "event_type",
+          "type": "string",
+          "location": "query",
+          "description": "Only deliveries of this event type"
+        },
+        {
+          "name": "success",
+          "type": "string",
+          "location": "query",
+          "description": "true = only successes, false = only failures"
+        },
+        {
+          "name": "external_participant_id",
+          "type": "string",
+          "location": "query",
+          "description": "Only deliveries carrying this participant id of yours. Combine with success=false to answer 'was this person ever successfully notified?' without pulling the whole log."
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "location": "query",
+          "description": "Limit"
+        },
+        {
+          "name": "offset",
+          "type": "int",
+          "location": "query",
+          "description": "Offset"
+        }
+      ]
+    },
+    {
+      "name": "webhooks_rotate-secret_rotate-webhook-secret",
+      "description": "Mint a new signing secret for this endpoint and return it — the only other time a secret is shown. **The previous secret stops verifying immediately**, so deploy the new one to your receiver before the next event fires, or expect signature failures in between. Use this when the secret from ``create_webhook`` was lost or leaked. Required: webhook_id. Returns the new WebhookSecretOut.",
+      "method": "POST",
+      "path": "/api/v1/webhooks/{webhook_id}/rotate-secret",
+      "params": [
+        {
+          "name": "webhook_id",
+          "type": "string",
+          "location": "path",
+          "description": "Webhook endpoint ID",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "novel_features": [
+    {
+      "name": "Flow behavior coverage",
+      "command": "flow coverage",
+      "description": "Shows how an Interview Flow actually routed across a whole study: every branch arm's share, how often the otherwise path fired, classifier errors, which steps interviews reached, and which declared variables are being captured. Flow-mode studies only: a linear study has no branch or flow records and correctly returns nothing."
+    },
+    {
+      "name": "Payout reconciliation",
+      "command": "reconcile",
+      "description": "Finds participants who completed a study but were never successfully notified, by joining completed interviews against the webhook deliveries that were supposed to tell your system about them."
+    },
+    {
+      "name": "Study definition diff",
+      "command": "study diff",
+      "description": "Compares two complete study definitions field by field — details, welcome and translations, screening, characteristics, questions or flow, recruitment — or compares a live study against a saved bundle file."
+    },
+    {
+      "name": "Answer rectangle",
+      "command": "answers matrix",
+      "description": "Turns a study into a real table: one row per interview, one column per question or captured variable, with the external participant id as the join key and optional participant characteristic columns via --with-characteristics. Works for both linear and flow studies."
+    },
+    {
+      "name": "Flow effects audit",
+      "command": "flow effects",
+      "description": "Aggregates what a flow's side steps actually did across a study: failed data fetches with status codes, undelivered signals, and dry-run signals from simulations kept separate from real ones. Flow-mode studies only: a linear study has no branch or flow records and correctly returns nothing."
+    },
+    {
+      "name": "Study bundle export and apply",
+      "command": "study bundle",
+      "description": "Snapshots an entire study definition — details, welcome and translations, screening, characteristics, questions or flow, recruitment — into one file. The write half is a separate command, 'study apply --file \u003cf\u003e', which plans by default and writes only with --confirm, and which replays whole-resource sections only (question lists replay via 'studies questions')."
+    },
+    {
+      "name": "Rehearsal vs reality diff",
+      "command": "rehearse diff",
+      "description": "Compares the simulated persona cohort against real participants on the same measures: step reach, branch arm mix, variable capture rate, message count and duration. Needs both cohorts; branch and variable measures are flow-mode only."
+    },
+    {
+      "name": "Fielding burn rate",
+      "command": "fielding",
+      "description": "Completions per day against the response quota, projecting the date the quota fills."
+    },
+    {
+      "name": "Cross-tab",
+      "command": "crosstab",
+      "description": "Segments any scale or options question by any participant characteristic, with per-cell counts and per-segment completion rate."
+    },
+    {
+      "name": "Saturation curve",
+      "command": "saturation",
+      "description": "Counts how many genuinely new terms each successive interview contributes, and marks the point where the curve flattens. A mechanical word-level proxy for new content, not a judgement about meaning."
+    }
+  ]
+}

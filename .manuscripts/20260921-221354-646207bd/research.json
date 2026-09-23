@@ -1,0 +1,333 @@
+{
+  "api_name": "deutero",
+  "novelty_score": 0,
+  "alternatives": [
+    {
+      "name": "dovetail-mcp",
+      "url": "https://github.com/dovetail/dovetail-mcp",
+      "language": "TypeScript",
+      "install_method": "",
+      "stars": 0,
+      "last_updated": "",
+      "command_count": 12,
+      "has_json_output": false,
+      "has_auth_support": false
+    },
+    {
+      "name": "QualiGPT",
+      "url": "https://github.com/KindOPSTAR/QualiGPT",
+      "language": "Python",
+      "install_method": "",
+      "stars": 0,
+      "last_updated": "",
+      "command_count": 3,
+      "has_json_output": false,
+      "has_auth_support": false
+    }
+  ],
+  "gaps": [],
+  "patterns": [],
+  "recommendation": "proceed",
+  "researched_at": "2026-09-22T01:30:00Z",
+  "novel_features": [
+    {
+      "name": "Flow behavior coverage",
+      "command": "flow coverage",
+      "description": "Shows how an Interview Flow actually routed across a whole study: every branch arm's share, how often the otherwise path fired, classifier errors, which steps interviews reached, and which declared variables are being captured. Flow-mode studies only: a linear study has no branch or flow records and correctly returns nothing.",
+      "rationale": "Branch decisions are returned by the per-interview transcript endpoint and never by bulk transcripts, so a study-level answer costs one request per interview — bounded, concurrent and reported here, instead of a researcher opening interviews one at a time.",
+      "example": "deutero-pp-cli flow coverage --study f0ed9214-06fc-4420-87b3-31240b670fc1 --agent",
+      "why_it_matters": "Reach for this when a branching interview might be misrouting: it names the arms that never fired and the share that fell through to the default, instead of making you read transcripts one at a time.",
+      "group": "Flow behavior you cannot see upstream"
+    },
+    {
+      "name": "Payout reconciliation",
+      "command": "reconcile",
+      "description": "Finds participants who completed a study but were never successfully notified, by joining completed interviews against the webhook deliveries that were supposed to tell your system about them.",
+      "rationale": "Spans two endpoint families with no server-side join, and the interesting set is an anti-join — the completions with no successful delivery — which only exists once both sides are local.",
+      "example": "deutero-pp-cli reconcile --study f0ed9214-06fc-4420-87b3-31240b670fc1 --webhook 9ca6a913-54ff-495d-92f0-2baaa24ee9c6 --json",
+      "why_it_matters": "Reach for this after a payout or reward run to find the people your system was never told about, instead of trusting that every webhook landed.",
+      "group": "Agent-native plumbing"
+    },
+    {
+      "name": "Study definition diff",
+      "command": "study diff",
+      "description": "Compares two complete study definitions field by field — details, welcome and translations, screening, characteristics, questions or flow, recruitment — or compares a live study against a saved bundle file.",
+      "rationale": "Each side is roughly seven calls and nothing upstream diffs anything; the comparison only exists once both definitions are local.",
+      "example": "deutero-pp-cli study diff --study f0ed9214-06fc-4420-87b3-31240b670fc1 --against 092103ce-0e01-4e81-8ea5-e85fa560504f",
+      "why_it_matters": "Use this before replaying a bundle over an existing study, or to see exactly how two studies' instruments differ.",
+      "group": "Agent-native plumbing"
+    },
+    {
+      "name": "Answer rectangle",
+      "command": "answers matrix",
+      "description": "Turns a study into a real table: one row per interview, one column per question or captured variable, with the external participant id as the join key and optional participant characteristic columns via --with-characteristics. Works for both linear and flow studies.",
+      "rationale": "No endpoint returns the interview by question rectangle; it is rebuilt locally from captured variables for flow studies and from the message stream for linear studies, since variables are empty for every linear study.",
+      "example": "deutero-pp-cli answers matrix --study f0ed9214-06fc-4420-87b3-31240b670fc1 --csv",
+      "why_it_matters": "Use this when you need to count or correlate answers rather than read them — it produces the rectangle you would otherwise rebuild by hand from transcripts.",
+      "group": "Answers the API cannot assemble"
+    },
+    {
+      "name": "Flow effects audit",
+      "command": "flow effects",
+      "description": "Aggregates what a flow's side steps actually did across a study: failed data fetches with status codes, undelivered signals, and dry-run signals from simulations kept separate from real ones. Flow-mode studies only: a linear study has no branch or flow records and correctly returns nothing.",
+      "rationale": "Fetches and signals are exposed one interview at a time with no study-level endpoint, so triaging a broken integration means aggregating them locally.",
+      "example": "deutero-pp-cli flow effects --study f0ed9214-06fc-4420-87b3-31240b670fc1 --json",
+      "why_it_matters": "Reach for this when an interview-time webhook or data fetch looks unreliable and you need the failures grouped by step rather than buried per interview.",
+      "group": "Flow behavior you cannot see upstream"
+    },
+    {
+      "name": "Study bundle export and apply",
+      "command": "study bundle",
+      "description": "Snapshots an entire study definition — details, welcome and translations, screening, characteristics, questions or flow, recruitment — into one file. The write half is a separate command, 'study apply --file \u003cf\u003e', which plans by default and writes only with --confirm, and which replays whole-resource sections only (question lists replay via 'studies questions').",
+      "rationale": "Authoring a study is roughly fifteen ordered API calls with nothing that captures the result; a single file makes the definition reviewable, versionable and replayable.",
+      "example": "deutero-pp-cli study bundle --study f0ed9214-06fc-4420-87b3-31240b670fc1 --output study.json",
+      "why_it_matters": "Use this to clone or version a study definition instead of re-deriving fifteen calls; pair it with 'study diff' to see what a replay would change before running 'study apply --confirm'.",
+      "group": "Agent-native plumbing"
+    },
+    {
+      "name": "Rehearsal vs reality diff",
+      "command": "rehearse diff",
+      "description": "Compares the simulated persona cohort against real participants on the same measures: step reach, branch arm mix, variable capture rate, message count and duration. Needs both cohorts; branch and variable measures are flow-mode only.",
+      "rationale": "Simulations deliberately mirror interviewer runtime semantics, but nothing server-side compares the two cohorts, so the comparison that turns a rehearsal into evidence has to be computed locally.",
+      "example": "deutero-pp-cli rehearse diff --study 092103ce-0e01-4e81-8ea5-e85fa560504f --agent",
+      "why_it_matters": "Reach for this after fielding starts to check whether real participants behave like the personas you rehearsed on, before trusting the pilot.",
+      "group": "Flow behavior you cannot see upstream"
+    },
+    {
+      "name": "Fielding burn rate",
+      "command": "fielding",
+      "description": "Completions per day against the response quota, projecting the date the quota fills.",
+      "rationale": "Study stats and recruitment expose totals and quota but no rate anywhere in the API; the rate comes from the local time series of interview start times.",
+      "example": "deutero-pp-cli fielding --study f0ed9214-06fc-4420-87b3-31240b670fc1 --json",
+      "why_it_matters": "Use this to answer whether a study will fill by a date, which the totals-only stats endpoint cannot tell you.",
+      "group": "Fielding decisions"
+    },
+    {
+      "name": "Cross-tab",
+      "command": "crosstab",
+      "description": "Segments any scale or options question by any participant characteristic, with per-cell counts and per-segment completion rate.",
+      "rationale": "The platform collects characteristics specifically for segmentation, yet the scale and options tallies come back as flat value-to-count maps with no grouping parameter.",
+      "example": "deutero-pp-cli crosstab --study f0ed9214-06fc-4420-87b3-31240b670fc1 --by role --question 7 --agent",
+      "why_it_matters": "Use this to answer whether an answer differs by segment — column marginals reconcile against the server's own tallies, so the numbers are checkable.",
+      "group": "Answers the API cannot assemble"
+    },
+    {
+      "name": "Saturation curve",
+      "command": "saturation",
+      "description": "Counts how many genuinely new terms each successive interview contributes, and marks the point where the curve flattens. A mechanical word-level proxy for new content, not a judgement about meaning.",
+      "rationale": "Requires chronological ordering of the full local transcript corpus; no endpoint has any concept of saturation.",
+      "example": "deutero-pp-cli saturation --study f0ed9214-06fc-4420-87b3-31240b670fc1 --json",
+      "why_it_matters": "Reach for this when deciding whether to stop fielding — it shows when additional interviews stopped adding new language, as evidence for that call rather than the call itself.",
+      "group": "Fielding decisions"
+    }
+  ],
+  "novel_features_built": [
+    {
+      "name": "Flow behavior coverage",
+      "command": "flow coverage",
+      "description": "Shows how an Interview Flow actually routed across a whole study: every branch arm's share, how often the otherwise path fired, classifier errors, which steps interviews reached, and which declared variables are being captured. Flow-mode studies only: a linear study has no branch or flow records and correctly returns nothing.",
+      "rationale": "Branch decisions are returned by the per-interview transcript endpoint and never by bulk transcripts, so a study-level answer costs one request per interview — bounded, concurrent and reported here, instead of a researcher opening interviews one at a time.",
+      "example": "deutero-pp-cli flow coverage --study f0ed9214-06fc-4420-87b3-31240b670fc1 --agent",
+      "why_it_matters": "Reach for this when a branching interview might be misrouting: it names the arms that never fired and the share that fell through to the default, instead of making you read transcripts one at a time.",
+      "group": "Flow behavior you cannot see upstream"
+    },
+    {
+      "name": "Payout reconciliation",
+      "command": "reconcile",
+      "description": "Finds participants who completed a study but were never successfully notified, by joining completed interviews against the webhook deliveries that were supposed to tell your system about them.",
+      "rationale": "Spans two endpoint families with no server-side join, and the interesting set is an anti-join — the completions with no successful delivery — which only exists once both sides are local.",
+      "example": "deutero-pp-cli reconcile --study f0ed9214-06fc-4420-87b3-31240b670fc1 --webhook 9ca6a913-54ff-495d-92f0-2baaa24ee9c6 --json",
+      "why_it_matters": "Reach for this after a payout or reward run to find the people your system was never told about, instead of trusting that every webhook landed.",
+      "group": "Agent-native plumbing"
+    },
+    {
+      "name": "Study definition diff",
+      "command": "study diff",
+      "description": "Compares two complete study definitions field by field — details, welcome and translations, screening, characteristics, questions or flow, recruitment — or compares a live study against a saved bundle file.",
+      "rationale": "Each side is roughly seven calls and nothing upstream diffs anything; the comparison only exists once both definitions are local.",
+      "example": "deutero-pp-cli study diff --study f0ed9214-06fc-4420-87b3-31240b670fc1 --against 092103ce-0e01-4e81-8ea5-e85fa560504f",
+      "why_it_matters": "Use this before replaying a bundle over an existing study, or to see exactly how two studies' instruments differ.",
+      "group": "Agent-native plumbing"
+    },
+    {
+      "name": "Answer rectangle",
+      "command": "answers matrix",
+      "description": "Turns a study into a real table: one row per interview, one column per question or captured variable, with the external participant id as the join key and optional participant characteristic columns via --with-characteristics. Works for both linear and flow studies.",
+      "rationale": "No endpoint returns the interview by question rectangle; it is rebuilt locally from captured variables for flow studies and from the message stream for linear studies, since variables are empty for every linear study.",
+      "example": "deutero-pp-cli answers matrix --study f0ed9214-06fc-4420-87b3-31240b670fc1 --csv",
+      "why_it_matters": "Use this when you need to count or correlate answers rather than read them — it produces the rectangle you would otherwise rebuild by hand from transcripts.",
+      "group": "Answers the API cannot assemble"
+    },
+    {
+      "name": "Flow effects audit",
+      "command": "flow effects",
+      "description": "Aggregates what a flow's side steps actually did across a study: failed data fetches with status codes, undelivered signals, and dry-run signals from simulations kept separate from real ones. Flow-mode studies only: a linear study has no branch or flow records and correctly returns nothing.",
+      "rationale": "Fetches and signals are exposed one interview at a time with no study-level endpoint, so triaging a broken integration means aggregating them locally.",
+      "example": "deutero-pp-cli flow effects --study f0ed9214-06fc-4420-87b3-31240b670fc1 --json",
+      "why_it_matters": "Reach for this when an interview-time webhook or data fetch looks unreliable and you need the failures grouped by step rather than buried per interview.",
+      "group": "Flow behavior you cannot see upstream"
+    },
+    {
+      "name": "Study bundle export and apply",
+      "command": "study bundle",
+      "description": "Snapshots an entire study definition — details, welcome and translations, screening, characteristics, questions or flow, recruitment — into one file. The write half is a separate command, 'study apply --file \u003cf\u003e', which plans by default and writes only with --confirm, and which replays whole-resource sections only (question lists replay via 'studies questions').",
+      "rationale": "Authoring a study is roughly fifteen ordered API calls with nothing that captures the result; a single file makes the definition reviewable, versionable and replayable.",
+      "example": "deutero-pp-cli study bundle --study f0ed9214-06fc-4420-87b3-31240b670fc1 --output study.json",
+      "why_it_matters": "Use this to clone or version a study definition instead of re-deriving fifteen calls; pair it with 'study diff' to see what a replay would change before running 'study apply --confirm'.",
+      "group": "Agent-native plumbing"
+    },
+    {
+      "name": "Rehearsal vs reality diff",
+      "command": "rehearse diff",
+      "description": "Compares the simulated persona cohort against real participants on the same measures: step reach, branch arm mix, variable capture rate, message count and duration. Needs both cohorts; branch and variable measures are flow-mode only.",
+      "rationale": "Simulations deliberately mirror interviewer runtime semantics, but nothing server-side compares the two cohorts, so the comparison that turns a rehearsal into evidence has to be computed locally.",
+      "example": "deutero-pp-cli rehearse diff --study 092103ce-0e01-4e81-8ea5-e85fa560504f --agent",
+      "why_it_matters": "Reach for this after fielding starts to check whether real participants behave like the personas you rehearsed on, before trusting the pilot.",
+      "group": "Flow behavior you cannot see upstream"
+    },
+    {
+      "name": "Fielding burn rate",
+      "command": "fielding",
+      "description": "Completions per day against the response quota, projecting the date the quota fills.",
+      "rationale": "Study stats and recruitment expose totals and quota but no rate anywhere in the API; the rate comes from the local time series of interview start times.",
+      "example": "deutero-pp-cli fielding --study f0ed9214-06fc-4420-87b3-31240b670fc1 --json",
+      "why_it_matters": "Use this to answer whether a study will fill by a date, which the totals-only stats endpoint cannot tell you.",
+      "group": "Fielding decisions"
+    },
+    {
+      "name": "Cross-tab",
+      "command": "crosstab",
+      "description": "Segments any scale or options question by any participant characteristic, with per-cell counts and per-segment completion rate.",
+      "rationale": "The platform collects characteristics specifically for segmentation, yet the scale and options tallies come back as flat value-to-count maps with no grouping parameter.",
+      "example": "deutero-pp-cli crosstab --study f0ed9214-06fc-4420-87b3-31240b670fc1 --by role --question 7 --agent",
+      "why_it_matters": "Use this to answer whether an answer differs by segment — column marginals reconcile against the server's own tallies, so the numbers are checkable.",
+      "group": "Answers the API cannot assemble"
+    },
+    {
+      "name": "Saturation curve",
+      "command": "saturation",
+      "description": "Counts how many genuinely new terms each successive interview contributes, and marks the point where the curve flattens. A mechanical word-level proxy for new content, not a judgement about meaning.",
+      "rationale": "Requires chronological ordering of the full local transcript corpus; no endpoint has any concept of saturation.",
+      "example": "deutero-pp-cli saturation --study f0ed9214-06fc-4420-87b3-31240b670fc1 --json",
+      "why_it_matters": "Reach for this when deciding whether to stop fielding — it shows when additional interviews stopped adding new language, as evidence for that call rather than the call itself.",
+      "group": "Fielding decisions"
+    }
+  ],
+  "auth": {
+    "canonical_env_var": "DEUTERO_API_KEY"
+  },
+  "narrative": {
+    "display_name": "Deutero",
+    "headline": "Every Deutero endpoint, plus the flow-behaviour and fielding answers that take many API calls to assemble and that no single endpoint returns.",
+    "value_prop": "Deutero's own MCP server already exposes every endpoint, so mirroring the API is table stakes. This CLI earns its place on the questions the API cannot answer in one call: how a branching Interview Flow actually routed across a study (`flow coverage`), the interview-by-question rectangle nobody returns (`answers matrix`), what a flow's fetches and signals really did (`flow effects`), which completions your webhook never reported (`reconcile`), and whether a study will fill by Thursday (`fielding`). Branch decisions come back one interview at a time and never in bulk, so these commands fan out for you — bounded, concurrent, and with the cost shown. They read live; `--limit` caps the fan-out at 500 interviews by default (raise it to at most 10,000). `sync` is separate and covers org-level resources only (projects, webhooks, webhook deliveries, embed keys, graph node types and health) — interviews and transcripts are study-scoped and cannot be synced.",
+    "auth_narrative": "Set DEUTERO_API_KEY, or run 'deutero-pp-cli auth set-token'. The CLI sends it as an Authorization: Bearer header; the API accepts either an API key or a Stytch M2M access token there. (The API also accepts an X-API-Key header, but this CLI does not use it.) There is no browser or cookie login and no hosted setup URL — mint a key from the Deutero dashboard. 'auth status' shows what is configured.",
+    "quickstart": [
+      {
+        "command": "deutero-pp-cli doctor",
+        "comment": "Confirms DEUTERO_API_KEY is set and the host answers before anything else runs"
+      },
+      {
+        "command": "deutero-pp-cli projects list",
+        "comment": "Find the project you want; every study hangs off one"
+      },
+      {
+        "command": "deutero-pp-cli projects studies list be8fc6bf-8819-4f73-81f9-961cf751b13a",
+        "comment": "Get the study id the rest of the commands take"
+      },
+      {
+        "command": "deutero-pp-cli studies stats get-study f0ed9214-06fc-4420-87b3-31240b670fc1",
+        "comment": "Totals and quota fill — the starting point the API does answer"
+      },
+      {
+        "command": "deutero-pp-cli flow coverage --study f0ed9214-06fc-4420-87b3-31240b670fc1",
+        "comment": "The question no single API call answers: how the flow actually routed"
+      },
+      {
+        "command": "deutero-pp-cli answers matrix --study f0ed9214-06fc-4420-87b3-31240b670fc1 --csv",
+        "comment": "The rectangle for counting and correlating, straight to a spreadsheet"
+      }
+    ],
+    "troubleshoots": [
+      {
+        "symptom": "401 with 'Missing authentication credentials'",
+        "fix": "Set DEUTERO_API_KEY. The CLI sends it as an Authorization: Bearer header; a Stytch M2M access token works there too."
+      },
+      {
+        "symptom": "403 'Access denied' on a study id you were given",
+        "fix": "The key belongs to one organization; a study in another org reads as denied. Run 'projects list' to see what this key can actually reach."
+      },
+      {
+        "symptom": "First command after an idle period takes several seconds",
+        "fix": "The host cold-starts (~4s observed). Raise --timeout if you are scripting tight loops; subsequent calls return in well under a second."
+      },
+      {
+        "symptom": "A study-wide command is slow on a large study",
+        "fix": "Branch decisions and flow effects exist only per interview, so these commands issue one request each. Lower --limit to bound the fan-out."
+      },
+      {
+        "symptom": "flow coverage reports a branch arm as 'not observed'",
+        "fix": "That means no interview recorded taking it — not that it cannot fire. Captured answers and decisions are best-effort projections upstream."
+      },
+      {
+        "symptom": "flow coverage or answers matrix returns nothing for a study",
+        "fix": "Linear studies have no flow records at all, and captured variables are empty for every linear study. answers matrix falls back to the message stream; flow coverage will correctly report nothing."
+      },
+      {
+        "symptom": "sync skips interviews or transcripts",
+        "fix": "Those endpoints are scoped to a study id that sync cannot supply, so it syncs org-level resources only (projects, webhooks, webhook deliveries, embed keys, graph node types and health). The analysis commands read live and do not need sync."
+      },
+      {
+        "symptom": "A step id in the output does not match anything in your flow editor",
+        "fix": "Report it — the API resolves compiled node ids back to your authored step ids, so a raw id like n3 is flagged in output rather than shown as a step name."
+      },
+      {
+        "symptom": "flow coverage or rehearse diff returns empty branches for a study that clearly has questions",
+        "fix": "Those measures exist only in flow (graph) mode. A linear question-list study has no branch or variable records at all — answers matrix is the command for its answers."
+      }
+    ],
+    "when_to_use": "Reach for this CLI when the question spans more than one Deutero API call: how a branching Interview Flow behaved across a study, the interview-by-question table no endpoint returns, whether a simulated rehearsal matched real participants, which completions a webhook never reported, and when a study will hit its quota. Also when you want a study definition as a file you can review, diff and replay. For single-resource reads and writes, an agent already holding Deutero's MCP server should use that instead.",
+    "anti_triggers": [
+      "Conducting or moderating an interview — the AI interviewer does that, not this CLI",
+      "Recruiting participants or buying a panel",
+      "Analysing transcripts from a source other than Deutero",
+      "One-off single-endpoint reads when the Deutero MCP server is already connected"
+    ],
+    "recipes": [
+      {
+        "title": "Find the branch that is misrouting",
+        "command": "deutero-pp-cli flow coverage --study f0ed9214-06fc-4420-87b3-31240b670fc1 --agent --select branches.step,branches.used_default_rate,branches.error_count",
+        "explanation": "Narrows a large coverage report to just the signal that matters — which branch fell through to its default most often, and whether the classifier was erroring — instead of pulling the whole nested payload into context."
+      },
+      {
+        "title": "Answers as a spreadsheet, segmented",
+        "command": "deutero-pp-cli crosstab --study f0ed9214-06fc-4420-87b3-31240b670fc1 --by role --question 7 --csv",
+        "explanation": "Cross-tabulates one scale question by a participant characteristic; the column totals reconcile against the server's own tally endpoint, so the numbers are checkable."
+      },
+      {
+        "title": "Decide whether to stop fielding",
+        "command": "deutero-pp-cli saturation --study f0ed9214-06fc-4420-87b3-31240b670fc1 --json",
+        "explanation": "Shows where new interviews stopped contributing new language, which is the evidence for calling a study done rather than running it to an arbitrary quota."
+      },
+      {
+        "title": "Version a study definition",
+        "command": "deutero-pp-cli study bundle --study f0ed9214-06fc-4420-87b3-31240b670fc1 --output study.json",
+        "explanation": "Captures details, welcome, screening, characteristics, questions or flow and recruitment as one file you can commit, diff and replay into a second study."
+      },
+      {
+        "title": "Check the rehearsal predicted reality",
+        "command": "deutero-pp-cli rehearse diff --study 092103ce-0e01-4e81-8ea5-e85fa560504f --agent",
+        "explanation": "Compares simulated persona interviews against real ones on step reach, branch mix and variable capture, so a pilot becomes evidence rather than a vibe."
+      }
+    ],
+    "trigger_phrases": [
+      "how did my interview flow route",
+      "which branch is misrouting",
+      "export study answers as a table",
+      "will my study fill by",
+      "have I reached saturation",
+      "compare my simulation to real interviews",
+      "use deutero",
+      "run deutero"
+    ]
+  }
+}

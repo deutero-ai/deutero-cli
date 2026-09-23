@@ -1,0 +1,15 @@
+# Root-anchored so cmd/<binary>/ source stays tracked.
+/deutero-pp-cli
+/deutero-pp-cli.exe
+/deutero-pp-mcp
+/deutero-pp-mcp.exe
+/bin/
+/build/
+/dist/
+
+# Local run artifacts / captured data - not for the public repo.
+/study.json
+/dogfood-results.json
+/apify-actor-audit-report.json
+/workflow-verify-report.json
+/.printing-press-pii-polish.json

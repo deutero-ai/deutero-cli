@@ -1,0 +1,16 @@
+# agentcookie.toml: secrets-bus adoption manifest v2
+# See docs/spec-agentcookie-secrets-bus-v2-adoption.md
+schema_version = 2
+name = "deutero-pp-cli"
+display_name = "Deutero"
+description = "Every Deutero endpoint, plus the flow-behaviour and fielding answers that take many API calls to assemble and that no single endpoint returns."
+project_kind = "cli"
+
+[secrets.file]
+path = "~/.config/deutero-pp-cli/config.toml"
+
+[sync]
+default = false
+
+[sync.keys]
+DEUTERO_API_KEY = true
