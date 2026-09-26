@@ -44,6 +44,11 @@ const (
 	// with --domain https://login-test.deutero.ai (or DEUTERO_OAUTH_DOMAIN) to
 	// target the test project.
 	defaultLoginDomain = "https://login.deutero.ai"
+	// defaultClientID is Deutero's first-party public Connected App on the
+	// production project. It applies only when logging in against
+	// defaultLoginDomain; other domains (e.g. the test project) need their own
+	// --client-id.
+	defaultClientID = "connected-app-live-2c9d5d78-ca5f-4dae-9d4c-93d2d9978b17"
 	// defaultScope requests offline_access (refresh token) plus the study-API
 	// access scope the CLI needs to call Deutero on the user's behalf.
 	defaultScope = "openid email offline_access full_access"
@@ -89,12 +94,12 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 			"exchanges the code for tokens, and saves them to your credentials file.\n\n" +
 			"Endpoints are discovered from the login domain's OIDC document; point\n" +
 			"--domain (or DEUTERO_OAUTH_DOMAIN) at the test project to switch envs.\n\n" +
-			"Required:\n" +
-			"  --client-id  / DEUTERO_OAUTH_CLIENT_ID   (Connected App client ID)\n" +
 			"Optional:\n" +
+			"  --client-id     / DEUTERO_OAUTH_CLIENT_ID     (default: Deutero's first-party\n" +
+			"                                                 app; required with a non-default --domain)\n" +
 			"  --client-secret / DEUTERO_OAUTH_CLIENT_SECRET (confidential clients)\n" +
 			"  --domain        / DEUTERO_OAUTH_DOMAIN        (default " + defaultLoginDomain + ")",
-		Example: "  deutero-pp-cli auth login --client-id CLIENT_ID\n" +
+		Example: "  deutero-pp-cli auth login\n" +
 			"  deutero-pp-cli auth login --client-id CLIENT_ID --domain https://login-test.deutero.ai\n" +
 			"  deutero-pp-cli auth login --no-launch   # print the URL instead of opening a browser",
 		Args: cobra.NoArgs,
@@ -106,8 +111,11 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 			tokenURL = firstNonEmpty(tokenURL, envValue("DEUTERO_OAUTH_TOKEN_URL"))
 			scope = firstNonEmpty(scope, envValue("DEUTERO_OAUTH_SCOPE"), defaultScope)
 
+			if clientID == "" && strings.TrimRight(domain, "/") == defaultLoginDomain {
+				clientID = defaultClientID
+			}
 			if clientID == "" {
-				return usageErr(fmt.Errorf("--client-id is required (or set DEUTERO_OAUTH_CLIENT_ID)"))
+				return usageErr(fmt.Errorf("--client-id is required with a non-default --domain (or set DEUTERO_OAUTH_CLIENT_ID)"))
 			}
 
 			// Fill any endpoint not explicitly overridden from OIDC discovery.
@@ -140,7 +148,7 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&clientID, "client-id", "", "Stytch Connected App OAuth client ID (env DEUTERO_OAUTH_CLIENT_ID)")
+	cmd.Flags().StringVar(&clientID, "client-id", "", "Stytch Connected App OAuth client ID (env DEUTERO_OAUTH_CLIENT_ID; defaults to Deutero's first-party app on the production domain)")
 	cmd.Flags().StringVar(&clientSecret, "client-secret", "", "OAuth client secret for confidential clients; omit for PKCE-only (env DEUTERO_OAUTH_CLIENT_SECRET)")
 	cmd.Flags().StringVar(&domain, "domain", "", "Login domain whose OIDC document supplies the endpoints (env DEUTERO_OAUTH_DOMAIN, default "+defaultLoginDomain+")")
 	cmd.Flags().StringVar(&authorizeURL, "authorize-url", "", "Override the authorize endpoint (env DEUTERO_OAUTH_AUTHORIZE_URL)")
